@@ -8,7 +8,7 @@ RI.CONFIG = {
   CHANNEL_LOGO: 'assets/binary-xor.png',
 
   // Public URL used on the share card and in share links. Empty = use the current page URL.
-  GAME_URL: 'https://morronel.github.io/ransomware_inc_2/',
+  GAME_URL: 'https://morronel.github.io/ransomware_inc/',
 
   VERSION: '2.0.0',
   TICK_MS: 500,          // one game tick (= one in-game hour) at 1x speed

@@ -60,7 +60,7 @@ node tools/sim.js 80     # win% (+double-extortion%) and average length per targ
 
 ## Deploy to GitHub Pages
 
-The workflow in `.github/workflows/pages.yml` publishes the site on every push to `main`. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The game is then live at https://morronel.github.io/ransomware_inc_2/.
+The workflow in `.github/workflows/pages.yml` publishes the site on every push to `main`. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The game is then live at https://morronel.github.io/ransomware_inc/.
 
 ## Project layout
 
