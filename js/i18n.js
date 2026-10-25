@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — UI strings (EN / UA)
+// Ransomware Inc. — UI strings (EN / UA)
 window.RI = window.RI || {};
 
 RI.lang = 'en';
@@ -112,7 +112,7 @@ RI.STR = {
     tgShare: 'SEND TO TELEGRAM',
     again: 'PLAY AGAIN',
     menu: 'MENU',
-    shareText: 'My crew {name} hit "{target}" in Ransomware Inc. 2: {result}. Rank: {rank}. Can you beat it?',
+    shareText: 'My crew {name} hit "{target}" in Ransomware Inc.: {result}. Rank: {rank}. Can you beat it?',
     resWin: '{pct}% encrypted',
     resExtort: 'double extortion with {loot} GB stolen',
     resLose: 'contained at {pct}% encrypted',
@@ -261,7 +261,7 @@ RI.STR = {
     tgShare: 'НАДІСЛАТИ В TELEGRAM',
     again: 'ЩЕ РАЗ',
     menu: 'МЕНЮ',
-    shareText: 'Моя команда {name} атакувала «{target}» у Ransomware Inc. 2: {result}. Ранг: {rank}. Зможеш краще?',
+    shareText: 'Моя команда {name} атакувала «{target}» у Ransomware Inc.: {result}. Ранг: {rank}. Зможеш краще?',
     resWin: 'зашифровано {pct}%',
     resExtort: 'подвійне вимагання, вкрадено {loot} ГБ',
     resLose: 'стримано на {pct}% шифрування',

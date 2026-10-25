@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — game content (bilingual: en / uk)
+// Ransomware Inc. — game content (bilingual: en / uk)
 // Every mechanic is an abstract game rule. Upgrades carry a flavour name and a broad tactic category;
 // real-world labels can be attached in js/labels.js. Nothing here describes a real procedure, tool or command.
 window.RI = window.RI || {};

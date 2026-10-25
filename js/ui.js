@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — screens, HUD, input and glue
+// Ransomware Inc. — screens, HUD, input and glue
 window.RI = window.RI || {};
 
 (function () {

@@ -1,6 +1,6 @@
 {
-  "name": "Ransomware Inc. 2",
-  "short_name": "Ransomware Inc 2",
+  "name": "Ransomware Inc.",
+  "short_name": "Ransomware Inc",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",

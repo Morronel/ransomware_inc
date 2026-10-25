@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — global config
+// Ransomware Inc. — global config
 window.RI = window.RI || {};
 
 RI.CONFIG = {

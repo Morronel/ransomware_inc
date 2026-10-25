@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — real-world labels (fill these in yourself)
+// Ransomware Inc. — real-world labels (fill these in yourself)
 //
 // Every entry vector and upgrade in the game has a flavour name. Here you can attach the real-world
 // framework label it stands for, e.g. a technique ID and its official name, a CWE number or an OWASP category.

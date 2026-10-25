@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — end-of-run result card (canvas -> PNG) and share helpers
+// Ransomware Inc. — end-of-run result card (canvas -> PNG) and share helpers
 window.RI = window.RI || {};
 
 (function () {
@@ -41,7 +41,7 @@ window.RI = window.RI || {};
 
     c.textAlign = 'center'; c.textBaseline = 'alphabetic';
     c.fillStyle = '#39ff88'; c.font = '700 30px ' + mono;
-    c.fillText('// RANSOMWARE INC. 2', W / 2, 120);
+    c.fillText('// RANSOMWARE INC.', W / 2, 120);
 
     // outcome
     var title = RI.t(g.outcome + 'Title');
@@ -132,8 +132,8 @@ window.RI = window.RI || {};
     };
     if (!navigator.share) return fallback();
     canvas.toBlob(function (blob) {
-      var file = blob && typeof File !== 'undefined' ? new File([blob], 'ransomware-inc-2.png', { type: 'image/png' }) : null;
-      var data = { title: 'Ransomware Inc. 2', text: text, url: url };
+      var file = blob && typeof File !== 'undefined' ? new File([blob], 'ransomware-inc.png', { type: 'image/png' }) : null;
+      var data = { title: 'Ransomware Inc.', text: text, url: url };
       if (file && navigator.canShare && navigator.canShare({ files: [file] })) data.files = [file];
       navigator.share(data).catch(function () {});
     }, 'image/png');
@@ -141,7 +141,7 @@ window.RI = window.RI || {};
 
   RI.saveCard = function (canvas) {
     var a = document.createElement('a');
-    a.download = 'ransomware-inc-2-result.png';
+    a.download = 'ransomware-inc-result.png';
     a.href = canvas.toDataURL('image/png');
     document.body.appendChild(a); a.click(); a.remove();
   };

@@ -1,4 +1,4 @@
-# Ransomware Inc. 2 — APT Edition
+# Ransomware Inc.
 
 A Plague Inc.-style mobile browser strategy game. You run a ransomware crew inside a fictional company: get initial access, spread quietly, climb from USER to ADMIN to DOMAIN control, steal the crown jewels, then encrypt enough of the network before the blue team contains you.
 

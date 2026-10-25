@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — simulation engine (no DOM; runs headless in node for balance tests)
+// Ransomware Inc. — simulation engine (no DOM; runs headless in node for balance tests)
 window.RI = window.RI || {};
 
 (function () {

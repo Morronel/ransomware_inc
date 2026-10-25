@@ -1,4 +1,4 @@
-// Ransomware Inc. 2 — network map renderer (canvas)
+// Ransomware Inc. — network map renderer (canvas)
 window.RI = window.RI || {};
 
 (function () {
