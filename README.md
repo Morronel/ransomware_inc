@@ -29,7 +29,7 @@ Empty slots are simply hidden, so you can fill them in gradually. No other code 
 
 - Vanilla JS, single page, no build step, no dependencies
 - English and Ukrainian (auto-detected, switchable)
-- Portrait and landscape layouts; a fullscreen button locks landscape on Android
+- Built for portrait phones (landscape works too)
 - 5 targets, 7 entry vectors, 42 upgrades, 30 news events, SOC console, double extortion, access tiers
 - NULL.FM: 20 minutes of procedurally generated darksynth composed live with the Web Audio API
 - Shareable PNG result card, native share sheet, Telegram share link

@@ -593,24 +593,6 @@ window.RI = window.RI || {};
     window.addEventListener('resize', function () { if (view && game) { view.resize(); } });
     if (window.ResizeObserver) new ResizeObserver(function () { if (view && game) view.resize(); }).observe($('map-wrap'));
 
-    // Fullscreen + landscape lock: works on Android browsers; iPhone Safari has no element fullscreen,
-    // so the button stays hidden there and players just rotate the phone (or add the game to the home screen).
-    var root = document.documentElement;
-    var fsReq = root.requestFullscreen || root.webkitRequestFullscreen;
-    if (fsReq) ['btn-fullscreen', 'menu-fullscreen'].forEach(function (id) {
-      $(id).classList.remove('hidden');
-      $(id).onclick = function () {
-        sfx('click');
-        var done = function () {
-          if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
-        };
-        if (document.fullscreenElement || document.webkitFullscreenElement) return done();
-        try {
-          var r = fsReq.call(root, { navigationUI: 'hide' });
-          if (r && r.then) r.then(done, function () {}); else done();
-        } catch (e) { /* not allowed */ }
-      };
-    });
     window.addEventListener('orientationchange', function () { setTimeout(function () { if (view && game) view.resize(); }, 250); });
 
     $('menu-howto').onclick = function () { sfx('click'); openOvl('ovl-howto'); };
