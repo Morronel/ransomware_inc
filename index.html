@@ -23,12 +23,31 @@
   <meta name="twitter:title" content="Ransomware Inc.">
   <meta name="twitter:description" content="Run a ransomware crew: get in, spread unseen, own the domain, steal the data, encrypt. Can you beat the blue team?">
   <meta name="twitter:image" content="https://morronel.github.io/ransomware_inc/assets/og-image.jpg">
+  <script>
+    // Cache guard: the deploy stamps __BUILD__ with the commit hash on every asset URL and in version.json.
+    // If this page is older than the live build, clear leftover caches and reload once onto the fresh version.
+    (function () {
+      var BUILD = '__BUILD__';
+      if (/^__/.test(BUILD) || !window.fetch) return;                // local dev: nothing to compare against
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations)
+          navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); });
+        if (window.caches && caches.keys) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+      } catch (e) { /* not available */ }
+      fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+        if (!v || !v.build || v.build === BUILD) return;
+        var key = 'ri_reload_' + v.build;
+        try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (e) { return; }  // never loop
+        location.replace(location.pathname + '?v=' + v.build + location.hash);
+      }).catch(function () { /* offline: keep what we have */ });
+    })();
+  </script>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest?v=__BUILD__">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Russo+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=__BUILD__">
 </head>
 <body>
 <div id="app">
@@ -213,14 +232,14 @@
   <div class="crt"></div>
 </div>
 
-<script src="js/config.js"></script>
-<script src="js/labels.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/data.js"></script>
-<script src="js/game.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/map.js"></script>
-<script src="js/share.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/config.js?v=__BUILD__"></script>
+<script src="js/labels.js?v=__BUILD__"></script>
+<script src="js/i18n.js?v=__BUILD__"></script>
+<script src="js/data.js?v=__BUILD__"></script>
+<script src="js/game.js?v=__BUILD__"></script>
+<script src="js/audio.js?v=__BUILD__"></script>
+<script src="js/map.js?v=__BUILD__"></script>
+<script src="js/share.js?v=__BUILD__"></script>
+<script src="js/ui.js?v=__BUILD__"></script>
 </body>
 </html>

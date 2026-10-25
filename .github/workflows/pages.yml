@@ -27,6 +27,12 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html manifest.webmanifest .nojekyll css js assets _site/
+      - name: Stamp build for cache busting
+        run: |
+          BUILD="${GITHUB_SHA::8}"
+          sed -i "s/__BUILD__/$BUILD/g" _site/index.html _site/js/config.js
+          echo "{\"build\":\"$BUILD\"}" > _site/version.json
+          grep -c "$BUILD" _site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

@@ -11,6 +11,7 @@ RI.CONFIG = {
   GAME_URL: 'https://morronel.github.io/ransomware_inc/',
 
   VERSION: '2.0.0',
+  BUILD: '__BUILD__',     // replaced with the commit hash at deploy time
   TICK_MS: 500,          // one game tick (= one in-game hour) at 1x speed
   STORAGE_KEY: 'ri2_v1'
 };
