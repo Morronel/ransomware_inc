@@ -389,3 +389,48 @@ h2.danger { color: var(--pink); }
 .hud-clock { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .actions .btn { min-width: 0; padding-left: 6px; padding-right: 6px; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; }
 .btn-detonate.done { font-size: 12px; }
+
+/* ------------------------------------------------ win finale */
+.map-wrap.fin-glitch { animation: finGlitch .9s steps(1) 1; }
+@keyframes finGlitch {
+  0% { transform: translate(0,0); filter: none; }
+  10% { transform: translate(-8px,2px) skewX(-4deg); filter: hue-rotate(-40deg) saturate(2.5); clip-path: inset(0 0 40% 0); }
+  20% { transform: translate(6px,-3px); filter: invert(0.15) saturate(3); clip-path: inset(30% 0 10% 0); }
+  35% { transform: translate(-3px,0) skewX(3deg); filter: hue-rotate(30deg); clip-path: none; }
+  50% { transform: translate(4px,4px); filter: brightness(1.8) saturate(2); }
+  65% { transform: translate(-5px,-1px); clip-path: inset(55% 0 0 0); }
+  80% { transform: translate(2px,1px); filter: saturate(1.6); clip-path: none; }
+  100% { transform: none; filter: none; clip-path: none; }
+}
+.finale { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; text-align: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(120,0,30,0.55), rgba(6,0,4,0.97) 70%); opacity: 0; transition: opacity .7s ease; cursor: pointer; }
+.finale.on { display: flex; background: transparent; opacity: 1; }
+.finale.on > * { opacity: 0; transition: opacity .6s ease; }
+.finale.show { background: radial-gradient(ellipse at 50% 45%, rgba(120,0,30,0.55), rgba(6,0,4,0.97) 70%); }
+.finale.show > * { opacity: 1; }
+.finale.show.out > .fin-body { opacity: 0; transition-duration: .35s; }
+.finale.fade { opacity: 0; }
+.finale::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px); }
+.finale.show::after { opacity: 1; }
+#finale-rain { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fin-body { position: relative; z-index: 1; width: min(440px, 100%); padding: 24px 20px; }
+.fin-lock { position: relative; width: 84px; height: 96px; margin: 0 auto 18px; filter: drop-shadow(0 0 18px rgba(255,42,109,0.9)); }
+.fin-shackle { position: absolute; left: 17px; top: 0; width: 50px; height: 56px; border: 9px solid var(--pink); border-bottom: 0; border-radius: 27px 27px 0 0; box-sizing: border-box;
+  transform: translateY(-16px); }
+.finale.show .fin-shackle { animation: finShut .35s cubic-bezier(.6,0,.9,.4) .55s forwards; }
+@keyframes finShut { to { transform: translateY(0); } }
+.fin-case { position: absolute; left: 0; bottom: 0; width: 84px; height: 56px; border-radius: 9px; background: var(--pink); }
+.fin-case::after { content: ''; position: absolute; left: 50%; top: 16px; width: 12px; height: 20px; margin-left: -6px; border-radius: 6px 6px 3px 3px; background: #2a0010; }
+.finale.show .fin-lock { animation: finThud .5s ease-out .88s; }
+@keyframes finThud { 30% { transform: scale(1.18); filter: drop-shadow(0 0 40px #ff2a6d) brightness(1.6); } }
+.fin-title { font-size: clamp(28px, 9vw, 46px); line-height: 1.05; color: #fff; text-shadow: 0 0 18px rgba(255,42,109,0.9), 0 0 46px rgba(255,42,109,0.5); }
+.finale.show .fin-title { animation: finIn .5s steps(4) .9s backwards; }
+@keyframes finIn { 0% { opacity: 0; transform: scale(1.6); filter: blur(6px); } 50% { opacity: 1; transform: translateX(-6px); } }
+.fin-pct { margin-top: 14px; font-family: var(--display); font-size: 40px; color: var(--pink); text-shadow: 0 0 14px rgba(255,42,109,0.8); }
+.fin-bar { height: 8px; margin: 8px auto 16px; width: 80%; border: 1px solid rgba(255,42,109,0.6); border-radius: 4px; overflow: hidden; }
+.fin-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff2a6d, #ff8fb1); box-shadow: 0 0 12px #ff2a6d; }
+.fin-line { color: #ffb3c8; font-size: 13px; letter-spacing: 0.12em; margin-top: 6px; }
+.fin-btc { color: #f9f002; font-weight: 700; text-shadow: 0 0 10px rgba(249,240,2,0.5); }
+.fin-skip { margin-top: 28px; color: rgba(255,179,200,0.55); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; animation: blink 1.4s infinite; }
+@media (prefers-reduced-motion: reduce) { .map-wrap.fin-glitch, .finale.show .fin-lock { animation: none; } }

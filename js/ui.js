@@ -279,7 +279,8 @@ window.RI = window.RI || {};
         sfx('lost'); break;
       case 'bought': sfx('buy'); break;
       case 'end':
-        sfx(d.outcome === 'win' || d.outcome === 'extort' ? 'win' : 'lose');
+        if (d.outcome === 'win') { playFinale(); break; }
+        sfx(d.outcome === 'extort' ? 'win' : 'lose');
         setTimeout(showEnd, 1400);
         break;
     }
@@ -398,6 +399,99 @@ window.RI = window.RI || {};
         '<span class="sr">' + (a.seen ? RI.t('socRead') : RI.t('socUnread')) + '</span></li>';
     }).join('') : '<li class="empty">' + RI.t('socEmpty') + '</li>';
     if (game) updateHud();
+  }
+
+  // ------------------------------------------------------------ win finale
+  // The rest of the map goes red in a wave, the board glitches, then a lock screen counts the damage up
+  // before the debrief. Tap to skip once it has started.
+  function playFinale() {
+    var g = game, fin = $('finale'), wrap = $('map-wrap'), t0 = performance.now(), timers = [], done = false, rain = null;
+    qa('.overlay.open').forEach(function (o) { o.classList.remove('open'); });
+    $('dept-tip').classList.add('hidden'); $('hint').classList.add('hidden');
+    view.selected = null;
+    RI.Audio.setIntensity(1);
+    sfx('detonate'); sfx('win');
+    vibrate([60, 40, 60, 40, 120]);
+    view.onFlip = function () { sfx('tick'); };
+    var cascade = view.startFinale();
+
+    var title = RI.t('winTitle');
+    $('fin-title').textContent = title; $('fin-title').setAttribute('data-text', title);
+    $('fin-target').textContent = RI.t('finTarget', { target: RI.L(g.diff.name).toUpperCase() });
+    $('fin-pct').textContent = '0';
+    pushTicker(title + ' // ' + RI.L(g.diff.name).toUpperCase(), 'hot', true);
+    $('fin-bar').style.width = '0';
+    $('fin-btc').textContent = '';
+    fin.className = 'finale on';
+    fin.onclick = function () { if (performance.now() - t0 > 900) finish(); };
+
+    timers.push(setTimeout(function () {
+      view.shake(); view.flashRed(); sfx('lost');
+      wrap.classList.remove('fin-glitch'); void wrap.offsetWidth; wrap.classList.add('fin-glitch');
+      vibrate([200, 60, 300]);
+    }, cascade));
+    timers.push(setTimeout(function () {
+      fin.classList.add('show'); sfx('finale');
+      rain = startRain($('finale-rain'));
+      timers.push(setTimeout(function () { sfx('lock'); vibrate(90); }, 880));
+      countUp(Math.round(g.encryptedPct() * 100), g.ransom(), 1300);
+    }, cascade + 600));
+    timers.push(setTimeout(finish, cascade + 6000));
+
+    function countUp(toPct, btc, delay) {
+      var s0 = performance.now() + delay, dur = 1500;
+      (function step(now) {
+        if (done) return;
+        var k = Math.max(0, Math.min(1, (now - s0) / dur)), e = 1 - Math.pow(1 - k, 3);
+        $('fin-pct').textContent = Math.round(toPct * e);
+        $('fin-bar').style.width = (toPct * e) + '%';
+        if (k > 0) $('fin-btc').textContent = RI.t('finBtc', { btc: (btc * e).toFixed(1) });
+        if (k > 0 && k < 1) sfx('tick');
+        if (k < 1) requestAnimationFrame(step);
+      })(performance.now());
+    }
+    function finish() {
+      if (done) return;
+      done = true;
+      timers.forEach(clearTimeout);
+      fin.classList.add('show', 'out');
+      setTimeout(function () {
+        showEnd();
+        fin.classList.add('fade');
+        setTimeout(function () {
+          if (rain) rain.stop();
+          fin.className = 'finale'; fin.onclick = null;
+          wrap.classList.remove('fin-glitch');
+          view.onFlip = null;
+        }, 700);
+      }, 380);
+    }
+  }
+
+  function vibrate(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) { /* no-op */ } }
+
+  // falling hex columns behind the lock screen
+  function startRain(cv) {
+    var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2), c = cv.getContext('2d');
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var fs = 14, cols = Math.ceil(r.width / fs), drops = [], id = 0, last = 0, HEX = '0123456789ABCDEF';
+    for (var i = 0; i < cols; i++) drops.push(Math.random() * -40);
+    function step(now) {
+      id = requestAnimationFrame(step);
+      if (now - last < 45) return;
+      last = now;
+      c.fillStyle = 'rgba(6,0,4,0.18)'; c.fillRect(0, 0, r.width, r.height);
+      c.font = '700 ' + fs + 'px JetBrains Mono, monospace'; c.textAlign = 'center';
+      for (var i = 0; i < cols; i++) {
+        var y = drops[i] * fs;
+        c.fillStyle = Math.random() < 0.08 ? '#ffd0dc' : 'rgba(255,42,109,0.55)';
+        c.fillText(HEX[(Math.random() * 16) | 0], i * fs + fs / 2, y);
+        if (y > r.height && Math.random() > 0.96) drops[i] = 0; else drops[i]++;
+      }
+    }
+    id = requestAnimationFrame(step);
+    return { stop: function () { cancelAnimationFrame(id); c.clearRect(0, 0, r.width, r.height); } };
   }
 
   // ------------------------------------------------------------ end screen

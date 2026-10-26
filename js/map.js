@@ -23,7 +23,7 @@ window.RI = window.RI || {};
   }
 
   MapView.prototype.setGame = function (g) {
-    this.game = g; this.lastState = {}; this.flash = []; this.floaters = [];
+    this.game = g; this.lastState = {}; this.flash = []; this.floaters = []; this.fin = null;
     g.hosts.forEach(function (h) { this.lastState[h.id] = h.s; }, this);
     this.layout();
   };
@@ -87,6 +87,26 @@ window.RI = window.RI || {};
   MapView.prototype.shake = function () { this.shakeUntil = performance.now() + 500; };
   MapView.prototype.flashRed = function () { this.redFlash = performance.now(); };
 
+  // Win finale: every host that is still standing turns red, spreading outward from the encrypted ones.
+  // Purely visual (the engine state is left alone so the stats stay honest). Returns the cascade length in ms.
+  MapView.prototype.startFinale = function () {
+    var g = this.game, src = g.hosts.filter(function (h) { return h.s === 'enc'; }), d = {}, max = 1, span = 1900;
+    g.hosts.forEach(function (h) {
+      if (h.s === 'enc') return;
+      var m = Infinity;
+      src.forEach(function (s) { m = Math.min(m, Math.hypot(s.x - h.x, s.y - h.y)); });
+      if (m === Infinity) m = 0;
+      d[h.id] = m; if (m > max) max = m;
+    });
+    Object.keys(d).forEach(function (k) { d[k] = 120 + d[k] / max * (span - 300) + Math.random() * 180; });
+    this.fin = { t0: performance.now(), d: d, span: span };
+    return span;
+  };
+  MapView.prototype.vstate = function (h, now) {
+    var f = this.fin;
+    return f && f.d[h.id] !== undefined && now - f.t0 >= f.d[h.id] ? 'enc' : h.s;
+  };
+
   // ---------------------------------------------------------------- drawing helpers
   function roundRect(c, x, y, w, h, r) {
     c.beginPath();
@@ -113,6 +133,7 @@ window.RI = window.RI || {};
   // ---------------------------------------------------------------- frame
   MapView.prototype.draw = function (alpha) {
     var g = this.game, c = this.ctx, W = this.w, H = this.h, now = performance.now(), self = this;
+    var S = function (h) { return self.vstate(h, now); };
     if (!g) return;
     c.save();
     if (now < this.shakeUntil) c.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
@@ -131,7 +152,7 @@ window.RI = window.RI || {};
       var d = z.d;
       roundRect(c, z.x, z.y, z.w, z.h, 10);
       var inf = 0, enc = 0;
-      d.hosts.forEach(function (h) { if (h.s === 'inf') inf++; else if (h.s === 'enc') enc++; });
+      d.hosts.forEach(function (h) { if (S(h) === 'inf') inf++; else if (S(h) === 'enc') enc++; });
       var heat = (inf + enc) / d.hosts.length;
       c.fillStyle = enc > 0 ? 'rgba(80,10,40,' + (0.25 + 0.35 * enc / d.hosts.length) + ')' : heat > 0 ? 'rgba(20,70,45,' + (0.2 + 0.25 * heat) + ')' : d.id === 'dmz' ? COL.dmz : COL.zone;
       c.fill();
@@ -162,9 +183,9 @@ window.RI = window.RI || {};
         var key = a.id < b.id ? a.id + '-' + b.id : b.id + '-' + a.id;
         if (drawn[key]) return; drawn[key] = 1;
         var cross = a.dept !== b.dept;
-        var hot = (a.s === 'inf' || a.s === 'enc') && (b.s === 'inf' || b.s === 'enc');
-        var live = a.s === 'inf' || b.s === 'inf' || a.s === 'enc' || b.s === 'enc';
-        c.strokeStyle = hot ? (a.s === 'enc' && b.s === 'enc' ? 'rgba(255,42,109,0.5)' : 'rgba(57,255,136,0.45)') : cross ? (live ? COL.gateLive : COL.gate) : COL.edge;
+        var hot = (S(a) === 'inf' || S(a) === 'enc') && (S(b) === 'inf' || S(b) === 'enc');
+        var live = S(a) === 'inf' || S(b) === 'inf' || S(a) === 'enc' || S(b) === 'enc';
+        c.strokeStyle = hot ? (S(a) === 'enc' && S(b) === 'enc' ? 'rgba(255,42,109,0.5)' : 'rgba(57,255,136,0.45)') : cross ? (live ? COL.gateLive : COL.gate) : COL.edge;
         c.lineWidth = cross ? 1.4 : 1;
         if (cross) c.setLineDash([4, 4]);
         if (cross && (a.dept.locked || b.dept.locked)) c.strokeStyle = 'rgba(255,59,59,0.3)';
@@ -186,38 +207,40 @@ window.RI = window.RI || {};
     // hosts
     var r = this.r;
     g.hosts.forEach(function (h) {
-      if (self.lastState[h.id] !== h.s) {
-        var col = h.s === 'inf' ? COL.inf : h.s === 'enc' ? COL.enc : h.s === 'iso' ? '#aaa' : COL.patched;
+      if (self.lastState[h.id] !== S(h)) {
+        var hs = S(h);
+        if (self.fin && hs === 'enc' && self.onFlip) self.onFlip(h);
+        var col = hs === 'inf' ? COL.inf : S(h) === 'enc' ? COL.enc : S(h) === 'iso' ? '#aaa' : COL.patched;
         self.flash.push({ x: h.x, y: h.y, color: col, t0: now });
-        self.lastState[h.id] = h.s;
+        self.lastState[h.id] = hs;
       }
-      var col2 = COL[h.s] || COL.clean;
+      var col2 = COL[S(h)] || COL.clean;
       var pulse = 0.6 + 0.4 * Math.sin(now / 300 + h.id);
-      if (h.s === 'inf' || h.s === 'enc') { // cheap glow: shadowBlur on every host is too slow on phones
+      if (S(h) === 'inf' || S(h) === 'enc') { // cheap glow: shadowBlur on every host is too slow on phones
         c.globalAlpha = 0.18 + 0.14 * pulse; c.fillStyle = col2;
         c.beginPath(); c.arc(h.x, h.y, r * 2.1, 0, Math.PI * 2); c.fill();
         c.globalAlpha = 0.3; c.beginPath(); c.arc(h.x, h.y, r * 1.45, 0, Math.PI * 2); c.fill();
         c.globalAlpha = 1;
       }
       shape(c, h.kind, h.x, h.y, r);
-      c.fillStyle = h.s === 'clean' ? '#151030' : h.s === 'iso' ? '#1c1a26' : col2;
-      c.globalAlpha = h.s === 'inf' ? 0.75 + 0.25 * pulse : 1;
+      c.fillStyle = S(h) === 'clean' ? '#151030' : S(h) === 'iso' ? '#1c1a26' : col2;
+      c.globalAlpha = S(h) === 'inf' ? 0.75 + 0.25 * pulse : 1;
       c.fill();
       c.globalAlpha = 1;
       c.shadowBlur = 0;
-      c.lineWidth = h.patched && h.s === 'clean' ? 2 : 1.2;
-      c.strokeStyle = h.s === 'clean' ? (h.patched ? COL.patched : '#5a6aa0') : h.s === 'iso' ? '#666' : '#fff';
+      c.lineWidth = h.patched && S(h) === 'clean' ? 2 : 1.2;
+      c.strokeStyle = S(h) === 'clean' ? (h.patched ? COL.patched : '#5a6aa0') : S(h) === 'iso' ? '#666' : '#fff';
       c.stroke();
-      if (h.s === 'enc') { // padlock glyph
+      if (S(h) === 'enc') { // padlock glyph
         c.fillStyle = '#2a0010';
         c.fillRect(h.x - r * 0.45, h.y - r * 0.1, r * 0.9, r * 0.65);
         c.strokeStyle = '#2a0010'; c.lineWidth = 1.5;
         c.beginPath(); c.arc(h.x, h.y - r * 0.1, r * 0.3, Math.PI, 0); c.stroke();
-      } else if (h.s === 'iso') {
+      } else if (S(h) === 'iso') {
         c.strokeStyle = '#888'; c.lineWidth = 1.5;
         c.beginPath(); c.moveTo(h.x - r * 0.5, h.y - r * 0.5); c.lineTo(h.x + r * 0.5, h.y + r * 0.5);
         c.moveTo(h.x + r * 0.5, h.y - r * 0.5); c.lineTo(h.x - r * 0.5, h.y + r * 0.5); c.stroke();
-      } else if ((h.kind === 'dc' || h.kind === 'web') && h.s === 'clean') {
+      } else if ((h.kind === 'dc' || h.kind === 'web') && S(h) === 'clean') {
         c.fillStyle = '#9a90c8'; c.font = '700 ' + Math.round(r) + 'px JetBrains Mono, monospace';
         c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(h.kind === 'dc' ? 'D' : 'W', h.x, h.y + 1);
       }
@@ -238,7 +261,7 @@ window.RI = window.RI || {};
     });
 
     // compute bubbles
-    g.bubbles.forEach(function (b) {
+    if (!this.fin) g.bubbles.forEach(function (b) {
       var age = (g.t - b.born + alpha) / b.life;
       var bx = b.host.x, by = b.host.y - 18 - Math.sin(now / 400 + b.id) * 3;
       var rr = 13 + 2 * Math.sin(now / 180 + b.id);
@@ -263,6 +286,15 @@ window.RI = window.RI || {};
     });
 
     c.restore();
+
+    // finale: the whole board sinks into a pulsing red haze
+    if (this.fin) {
+      var fk = Math.min(1, (now - this.fin.t0) / (this.fin.span + 900));
+      var vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.75);
+      vg.addColorStop(0, 'rgba(255,20,70,' + (0.06 * fk * (0.6 + 0.4 * Math.sin(now / 140))) + ')');
+      vg.addColorStop(1, 'rgba(20,0,8,' + (0.75 * fk) + ')');
+      c.fillStyle = vg; c.fillRect(0, 0, W, H);
+    }
 
     // red flash on detonation
     var rf = (now - this.redFlash) / 900;

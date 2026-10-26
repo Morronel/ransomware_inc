@@ -467,6 +467,17 @@ window.RI = window.RI || {};
         break;
       case 'win': [0, 3, 7, 10, 15].forEach(function (s, i) { blip('sawtooth', mtof(57 + s), null, 1.2, 0.07, t + i * 0.09); }); break;
       case 'lose': blip('sawtooth', 440, 55, 1.4, 0.15); blip('square', 330, 41, 1.4, 0.06); break;
+      // win finale
+      case 'tick': blip('square', 900 + Math.random() * 700, 300, 0.05, 0.05); break;
+      case 'lock': blip('square', 1800, 600, 0.05, 0.18); noiseHit(t, 0.12, 3000, 0.3); blip('sine', 90, 40, 0.4, 0.5, t + 0.02); break;
+      case 'finale':
+        blip('sine', 70, 26, 2.2, 0.7);
+        noiseHit(t, 1.8, 4000, 0.35, true);
+        [45, 52, 57, 60, 64, 69].forEach(function (m, i) {
+          blip('sawtooth', mtof(m), null, 3.2, 0.045, t + 0.12 + i * 0.07);
+          blip('sawtooth', mtof(m) * 1.006, null, 3.2, 0.03, t + 0.12 + i * 0.07);
+        });
+        break;
     }
   };
   function noiseHit(t, dur, freq, vol, sweep) {
