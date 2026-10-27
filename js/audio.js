@@ -470,6 +470,20 @@ window.RI = window.RI || {};
       // win finale
       case 'tick': blip('square', 900 + Math.random() * 700, 300, 0.05, 0.05); break;
       case 'lock': blip('square', 1800, 600, 0.05, 0.18); noiseHit(t, 0.12, 3000, 0.3); blip('sine', 90, 40, 0.4, 0.5, t + 0.02); break;
+      case 'wipe':     // grinding overwrite: low rumble, noise sweep, detuned fifth
+        blip('sawtooth', 55, 30, 2.4, 0.4);
+        noiseHit(t, 2.2, 6000, 0.45, true);
+        [40, 47, 52].forEach(function (m, i) { blip('square', mtof(m), mtof(m) * 0.98, 2.8, 0.05, t + 0.1 + i * 0.12); });
+        break;
+      case 'ghost':    // quiet, wide, unresolved
+        [62, 69, 74, 76, 81].forEach(function (m, i) { blip('sine', mtof(m), null, 3.4, 0.06, t + i * 0.18); blip('triangle', mtof(m) * 1.004, null, 3.4, 0.025, t + i * 0.18); });
+        break;
+      case 'horn':     // airhorn: three stacked squares, pulsed
+        [0, 0.18, 0.36, 0.72].forEach(function (d, i) {
+          var len = i === 3 ? 0.5 : 0.14;
+          [440, 554, 659].forEach(function (f) { blip('square', f, f * 0.97, len, 0.06, t + d); });
+        });
+        break;
       case 'finale':
         blip('sine', 70, 26, 2.2, 0.7);
         noiseHit(t, 1.8, 4000, 0.35, true);

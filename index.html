@@ -85,6 +85,8 @@
         <input id="crew-name" maxlength="16" spellcheck="false" autocomplete="off">
         <button class="btn btn-small" id="name-reroll">⟳ <span data-i18n="reroll"></span></button>
       </div>
+      <label class="lbl" data-i18n="factionLabel"></label>
+      <div class="cards fac-cards" id="faction-cards"></div>
       <label class="lbl" data-i18n="targetLabel"></label>
       <div class="cards" id="target-cards"></div>
       <label class="lbl" data-i18n="vectorLabel"></label>
@@ -115,9 +117,9 @@
     </div>
     <footer class="hud-bottom">
       <div class="meters">
-        <div class="meter m-inf"><div class="m-lbl"><span data-i18n="infected"></span><b id="m-inf-v">0%</b></div><div class="m-bar"><i id="m-inf"></i></div></div>
-        <div class="meter m-enc"><div class="m-lbl"><span data-i18n="encrypted"></span><b id="m-enc-v">0%</b></div><div class="m-bar"><i id="m-enc"></i><s id="m-enc-goal"></s></div></div>
-        <div class="meter m-exf"><div class="m-lbl"><span data-i18n="exfil"></span><b id="m-exf-v"></b></div><div class="m-bar"><i id="m-exf"></i></div></div>
+        <div class="meter m-inf"><div class="m-lbl"><span data-i18n="infected"></span><b id="m-inf-v">0%</b></div><div class="m-bar"><i id="m-inf"></i><s id="m-inf-goal" class="hidden"></s></div></div>
+        <div class="meter m-enc"><div class="m-lbl"><span id="m-enc-l" data-i18n="encrypted"></span><b id="m-enc-v">0%</b></div><div class="m-bar"><i id="m-enc"></i><s id="m-enc-goal"></s></div></div>
+        <div class="meter m-exf"><div class="m-lbl"><span id="m-exf-l" data-i18n="exfil"></span><b id="m-exf-v"></b></div><div class="m-bar"><i id="m-exf"></i></div></div>
         <div class="meter m-tac" id="m-tac"><div class="m-lbl"><span data-i18n="tacticsLbl"></span><b id="m-tac-v">0/12</b></div><div class="tac-strip" id="tac-strip"></div></div>
         <div class="meter m-det"><div class="m-lbl"><span data-i18n="detection"></span><b id="m-det-v"></b></div><div class="m-bar"><i id="m-det"></i><s style="left:20%"></s><s style="left:45%"></s><s style="left:70%"></s></div></div>
         <div class="meter m-ir"><div class="m-lbl"><span data-i18n="blueteam"></span><b id="m-ir-v"></b></div><div class="m-bar"><i id="m-ir"></i></div></div>
@@ -125,7 +127,7 @@
       <div class="actions">
         <button class="btn btn-soc" id="btn-soc"><span data-i18n="socBtn"></span> <em id="soc-badge" class="badge hot hidden"></em></button>
         <button class="btn btn-evolve" id="btn-evolve"><span data-i18n="evolve"></span> <em id="evolve-badge" class="badge hidden"></em></button>
-        <button class="btn btn-detonate" id="btn-detonate" disabled>☢ <span id="det-label" data-i18n="detonate"></span></button>
+        <button class="btn btn-detonate" id="btn-detonate" disabled><span id="det-icon">☢</span> <span id="det-label" data-i18n="detonate"></span></button>
       </div>
     </footer>
   </section>
@@ -134,9 +136,9 @@
   <div class="finale" id="finale" aria-hidden="true">
     <canvas id="finale-rain"></canvas>
     <div class="fin-body">
-      <div class="fin-lock"><i class="fin-shackle"></i><i class="fin-case"></i></div>
+      <div class="fin-emblem" id="fin-emblem"></div>
       <div class="fin-title glitch" id="fin-title" data-text=""></div>
-      <div class="fin-pct"><b id="fin-pct">0</b>%</div>
+      <div class="fin-pct"><b id="fin-pct">0</b><span id="fin-unit">%</span></div>
       <div class="fin-bar"><i id="fin-bar"></i></div>
       <div class="fin-line" id="fin-target"></div>
       <div class="fin-line fin-btc" id="fin-btc"></div>
@@ -234,8 +236,8 @@
 
   <div class="overlay" id="ovl-confirm">
     <div class="panel small-panel">
-      <h2 class="danger" data-i18n="confirmDetTitle"></h2>
-      <p data-i18n="confirmDet"></p>
+      <h2 class="danger" id="confirm-title" data-i18n="confirmDetTitle"></h2>
+      <p id="confirm-body" data-i18n="confirmDet"></p>
       <p class="warn" id="confirm-warn"></p>
       <button class="btn btn-detonate btn-wide" id="confirm-yes" data-i18n="yes"></button>
       <button class="btn btn-wide" data-close data-i18n="no"></button>
@@ -250,6 +252,7 @@
 <script src="js/labels.js?v=__BUILD__"></script>
 <script src="js/i18n.js?v=__BUILD__"></script>
 <script src="js/data.js?v=__BUILD__"></script>
+<script src="js/factions.js?v=__BUILD__"></script>
 <script src="js/game.js?v=__BUILD__"></script>
 <script src="js/audio.js?v=__BUILD__"></script>
 <script src="js/map.js?v=__BUILD__"></script>

@@ -24,6 +24,9 @@ window.RI = window.RI || {};
 
   MapView.prototype.setGame = function (g) {
     this.game = g; this.lastState = {}; this.flash = []; this.floaters = []; this.fin = null;
+    // wiped hosts look different from encrypted ones
+    this.wipe = g.faction && g.faction.goal === 'wipe';
+    this.pal = Object.assign({}, COL, this.wipe ? { enc: '#ff7a1a', encRgb: '255,122,26', encZone: '70,25,5' } : { encRgb: '255,42,109', encZone: '80,10,40' });
     g.hosts.forEach(function (h) { this.lastState[h.id] = h.s; }, this);
     this.layout();
   };
@@ -87,24 +90,27 @@ window.RI = window.RI || {};
   MapView.prototype.shake = function () { this.shakeUntil = performance.now() + 500; };
   MapView.prototype.flashRed = function () { this.redFlash = performance.now(); };
 
-  // Win finale: every host that is still standing turns red, spreading outward from the encrypted ones.
-  // Purely visual (the engine state is left alone so the stats stay honest). Returns the cascade length in ms.
-  MapView.prototype.startFinale = function () {
-    var g = this.game, src = g.hosts.filter(function (h) { return h.s === 'enc'; }), d = {}, max = 1, span = 1900;
+  // Win finale: every host that is still standing flips to `to` ('enc' by default), spreading outward from the hosts
+  // already in that state. Purely visual (the engine state is left alone so the stats stay honest).
+  // haze = "r,g,b" of the pulsing tint. Returns the cascade length in ms.
+  MapView.prototype.startFinale = function (opts) {
+    opts = opts || {};
+    var to = opts.to || 'enc';
+    var g = this.game, src = g.hosts.filter(function (h) { return h.s === to; }), d = {}, max = 1, span = 1900;
     g.hosts.forEach(function (h) {
-      if (h.s === 'enc') return;
+      if (h.s === to) return;
       var m = Infinity;
       src.forEach(function (s) { m = Math.min(m, Math.hypot(s.x - h.x, s.y - h.y)); });
       if (m === Infinity) m = 0;
       d[h.id] = m; if (m > max) max = m;
     });
     Object.keys(d).forEach(function (k) { d[k] = 120 + d[k] / max * (span - 300) + Math.random() * 180; });
-    this.fin = { t0: performance.now(), d: d, span: span };
+    this.fin = { t0: performance.now(), d: d, span: span, to: to, haze: opts.haze || '255,20,70' };
     return span;
   };
   MapView.prototype.vstate = function (h, now) {
     var f = this.fin;
-    return f && f.d[h.id] !== undefined && now - f.t0 >= f.d[h.id] ? 'enc' : h.s;
+    return f && f.d[h.id] !== undefined && now - f.t0 >= f.d[h.id] ? f.to : h.s;
   };
 
   // ---------------------------------------------------------------- drawing helpers
@@ -134,6 +140,7 @@ window.RI = window.RI || {};
   MapView.prototype.draw = function (alpha) {
     var g = this.game, c = this.ctx, W = this.w, H = this.h, now = performance.now(), self = this;
     var S = function (h) { return self.vstate(h, now); };
+    var COL = this.pal;
     if (!g) return;
     c.save();
     if (now < this.shakeUntil) c.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
@@ -154,7 +161,7 @@ window.RI = window.RI || {};
       var inf = 0, enc = 0;
       d.hosts.forEach(function (h) { if (S(h) === 'inf') inf++; else if (S(h) === 'enc') enc++; });
       var heat = (inf + enc) / d.hosts.length;
-      c.fillStyle = enc > 0 ? 'rgba(80,10,40,' + (0.25 + 0.35 * enc / d.hosts.length) + ')' : heat > 0 ? 'rgba(20,70,45,' + (0.2 + 0.25 * heat) + ')' : d.id === 'dmz' ? COL.dmz : COL.zone;
+      c.fillStyle = enc > 0 ? 'rgba(' + COL.encZone + ',' + (0.25 + 0.35 * enc / d.hosts.length) + ')' : heat > 0 ? 'rgba(20,70,45,' + (0.2 + 0.25 * heat) + ')' : d.id === 'dmz' ? COL.dmz : COL.zone;
       c.fill();
       c.setLineDash(d.airgap ? [6, 5] : d.locked ? [10, 4] : []);
       c.strokeStyle = d.locked ? 'rgba(255,59,59,' + (0.5 + 0.5 * lockPulse) + ')' : d.airgap ? '#4c6b8a' : COL.zoneLine;
@@ -185,7 +192,7 @@ window.RI = window.RI || {};
         var cross = a.dept !== b.dept;
         var hot = (S(a) === 'inf' || S(a) === 'enc') && (S(b) === 'inf' || S(b) === 'enc');
         var live = S(a) === 'inf' || S(b) === 'inf' || S(a) === 'enc' || S(b) === 'enc';
-        c.strokeStyle = hot ? (S(a) === 'enc' && S(b) === 'enc' ? 'rgba(255,42,109,0.5)' : 'rgba(57,255,136,0.45)') : cross ? (live ? COL.gateLive : COL.gate) : COL.edge;
+        c.strokeStyle = hot ? (S(a) === 'enc' && S(b) === 'enc' ? 'rgba(' + COL.encRgb + ',0.5)' : 'rgba(57,255,136,0.45)') : cross ? (live ? COL.gateLive : COL.gate) : COL.edge;
         c.lineWidth = cross ? 1.4 : 1;
         if (cross) c.setLineDash([4, 4]);
         if (cross && (a.dept.locked || b.dept.locked)) c.strokeStyle = 'rgba(255,59,59,0.3)';
@@ -209,7 +216,7 @@ window.RI = window.RI || {};
     g.hosts.forEach(function (h) {
       if (self.lastState[h.id] !== S(h)) {
         var hs = S(h);
-        if (self.fin && hs === 'enc' && self.onFlip) self.onFlip(h);
+        if (self.fin && hs === self.fin.to && self.onFlip) self.onFlip(h);
         var col = hs === 'inf' ? COL.inf : S(h) === 'enc' ? COL.enc : S(h) === 'iso' ? '#aaa' : COL.patched;
         self.flash.push({ x: h.x, y: h.y, color: col, t0: now });
         self.lastState[h.id] = hs;
@@ -231,7 +238,11 @@ window.RI = window.RI || {};
       c.lineWidth = h.patched && S(h) === 'clean' ? 2 : 1.2;
       c.strokeStyle = S(h) === 'clean' ? (h.patched ? COL.patched : '#5a6aa0') : S(h) === 'iso' ? '#666' : '#fff';
       c.stroke();
-      if (S(h) === 'enc') { // padlock glyph
+      if (S(h) === 'enc' && self.wipe) { // wiped: a cross through the host
+        c.strokeStyle = '#2a0e00'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(h.x - r * 0.5, h.y - r * 0.5); c.lineTo(h.x + r * 0.5, h.y + r * 0.5);
+        c.moveTo(h.x + r * 0.5, h.y - r * 0.5); c.lineTo(h.x - r * 0.5, h.y + r * 0.5); c.stroke();
+      } else if (S(h) === 'enc') { // padlock glyph
         c.fillStyle = '#2a0010';
         c.fillRect(h.x - r * 0.45, h.y - r * 0.1, r * 0.9, r * 0.65);
         c.strokeStyle = '#2a0010'; c.lineWidth = 1.5;
@@ -291,7 +302,7 @@ window.RI = window.RI || {};
     if (this.fin) {
       var fk = Math.min(1, (now - this.fin.t0) / (this.fin.span + 900));
       var vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.75);
-      vg.addColorStop(0, 'rgba(255,20,70,' + (0.06 * fk * (0.6 + 0.4 * Math.sin(now / 140))) + ')');
+      vg.addColorStop(0, 'rgba(' + this.fin.haze + ',' + (0.06 * fk * (0.6 + 0.4 * Math.sin(now / 140))) + ')');
       vg.addColorStop(1, 'rgba(20,0,8,' + (0.75 * fk) + ')');
       c.fillStyle = vg; c.fillRect(0, 0, W, H);
     }

@@ -16,8 +16,8 @@ window.RI = window.RI || {};
     var W = 1080, H = 1350, cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var c = cv.getContext('2d');
-    var win = g.outcome === 'win' || g.outcome === 'extort';
-    var accent = g.outcome === 'extort' ? '#ff9f1c' : win ? '#ff2a6d' : '#28e0ff';
+    var win = g.outcome === 'win' || g.outcome === 'extort', fid = g.faction.id, goal = g.faction.goal;
+    var accent = g.outcome === 'extort' ? '#ff9f1c' : win ? g.faction.color : '#28e0ff';
     var display = '"Russo One", "JetBrains Mono", sans-serif', mono = '"JetBrains Mono", monospace';
 
     // background
@@ -44,7 +44,7 @@ window.RI = window.RI || {};
     c.fillText('// RANSOMWARE INC.', W / 2, 120);
 
     // outcome
-    var title = RI.t(g.outcome + 'Title');
+    var title = RI.tf(fid, g.outcome + 'Title');
     fitText(c, title, W - 160, 96, '400', display);
     c.shadowColor = accent; c.shadowBlur = 40; c.fillStyle = accent;
     c.fillText(title, W / 2, 260);
@@ -56,7 +56,7 @@ window.RI = window.RI || {};
 
     // strain + target
     c.fillStyle = '#9a90c8'; c.font = '700 28px ' + mono;
-    c.fillText(RI.lang === 'uk' ? 'КОМАНДА' : 'CREW', W / 2, 345);
+    c.fillText(g.faction.icon + ' ' + RI.L(g.faction.name).toUpperCase(), W / 2, 345);
     fitText(c, g.name, W - 200, 72, '400', display);
     c.fillStyle = '#39ff88'; c.shadowColor = '#39ff88'; c.shadowBlur = 20;
     c.fillText(g.name, W / 2, 420); c.shadowBlur = 0;
@@ -64,20 +64,21 @@ window.RI = window.RI || {};
     c.fillText('→ ' + RI.L(g.diff.name), W / 2, 480);
 
     // big percentage ring
-    var pct = Math.round(g.encryptedPct() * 100);
+    var pct = Math.round(g.progress() * 100);
     var cx = W / 2, cy = 680, R = 150;
     c.lineWidth = 26; c.strokeStyle = '#231a40';
     c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
-    c.strokeStyle = '#ff2a6d'; c.shadowColor = '#ff2a6d'; c.shadowBlur = 25;
+    var ring = win ? accent : '#ff2a6d';
+    c.strokeStyle = ring; c.shadowColor = ring; c.shadowBlur = 25;
     c.beginPath(); c.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct / 100); c.stroke();
     c.shadowBlur = 0;
     c.fillStyle = '#fff'; c.font = '400 92px ' + display; c.fillText(pct + '%', cx, cy + 22);
-    c.fillStyle = '#9a90c8'; c.font = '700 24px ' + mono; c.fillText(RI.t('encrypted'), cx, cy + 66);
+    c.fillStyle = '#9a90c8'; c.font = '700 24px ' + mono; c.fillText(RI.t(goal === 'wipe' ? 'wiped' : goal === 'stealth' ? 'objectives' : goal === 'dc' ? 'pathDc' : 'encrypted'), cx, cy + 66);
 
     // stat row
     var stats = [
       [RI.t('sTime'), RI.ui.clock(g.t)],
-      [RI.t('exfil'), Math.round(g.loot) + ' GB'],
+      goal === 'dc' ? [RI.t('heat'), Math.round(g.peakHeat) + '%'] : [RI.t('exfil'), Math.round(g.loot) + ' GB'],
       [RI.t('detection'), Math.round(g.peakDetectionBeforeDet()) + '%']
     ];
     stats.forEach(function (st, k) {
@@ -117,10 +118,10 @@ window.RI = window.RI || {};
   };
 
   RI.shareText = function (g) {
-    var pct = Math.round(g.encryptedPct() * 100);
-    return RI.t('shareText', {
-      name: g.name, target: RI.L(g.diff.name), rank: RI.L(g.rank()),
-      result: RI.t(g.outcome === 'win' ? 'resWin' : g.outcome === 'extort' ? 'resExtort' : 'resLose', { pct: pct, loot: Math.round(g.loot) })
+    var pct = Math.round(g.progress() * 100), fid = g.faction.id;
+    return RI.t(fid === 'ransom' ? 'shareText' : 'shareText_x', {
+      name: g.name, target: RI.L(g.diff.name), rank: RI.L(g.rank()), faction: RI.L(g.faction.name),
+      result: RI.tf(fid, g.outcome === 'win' ? 'resWin' : g.outcome === 'extort' ? 'resExtort' : 'resLose', { pct: pct, loot: Math.round(g.loot) })
     });
   };
 

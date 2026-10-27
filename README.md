@@ -1,13 +1,24 @@
 # Ransomware Inc.
 
-A Plague Inc.-style mobile browser strategy game. You run a ransomware crew inside a fictional company: get initial access, spread quietly, climb from USER to ADMIN to DOMAIN control, steal the crown jewels, then encrypt enough of the network before the blue team contains you.
+A Plague Inc.-style mobile browser strategy game. You run a crew inside a fictional company: get initial access, spread quietly, climb from USER to ADMIN to DOMAIN control, and reach your crew's goal before the blue team contains you.
 
 **Educational by design.** Every mechanic is abstract: nothing in the game describes a real technique, tool or command. The lesson is on the defender's side. The SOC console shows what your actions look like to analysts, and the end screen explains which defense stopped you (or would have): MFA, least privilege, segmentation, EDR, patching, SOC monitoring and offline backups each break a different link of the chain.
 
+## Crews
+
+| Crew | Goal | Special rules | Win screen |
+|---|---|---|---|
+| 🔒 Ransomware Gang | Encrypt the target share of the network | DETONATE; double extortion with a leak site | red wave, padlock, ransom counter |
+| ✊ Hacktivists | Wipe it instead | wipers are faster, the crew is louder, no ransom; public dump instead of extortion | orange wave, skull, zero-fill rain |
+| 👁 APT | DOMAIN control + crown jewels + 60% reach, held for a full day | no payload; **GO DARK** pauses everything and cools the trail; threat hunts sweep for long dwell; an incident declaration means **BURNED** | silent cyan takeover, watching eye |
+| 😎 Script Kiddies | Touch the directory server once | dumb-but-funny tree; every brag adds **HEAT**, 100% = **BUSTED**; **COVER UP** sheds heat | emoji rain, air horn, "GOT THE DC!!1" |
+
+Each crew has its own tree: Ransomware, Hacktivists and APT share CREDS / MOVE / EVADE and get their own fourth branch (IMPACT, CHAOS, COLLECT); Script Kiddies get COPYPASTA, CLOUT and YOLO. Crews live in `js/factions.js`.
+
 ## Play
 
-- Pick a target (from "Garage Startup" to "Bank under DORA") and an initial access vector.
-- Footholds spread on their own. Tap the yellow ◆ intel caches and spend intel in **EVOLVE** across four branches: Creds, Move, Evade, Impact.
+- Pick a crew, a target (from "Garage Startup" to "Bank under DORA") and an initial access vector.
+- Footholds spread on their own. Tap the yellow ◆ intel caches and spend intel in **EVOLVE** across your crew's branches.
 - Access matters: servers, the directory and backups need ADMIN; holding the directory server gives DOMAIN control.
 - Everything makes noise. Detection raises the alert level: triage, incident (password reset), containment (isolation and lockdowns). Tap **SOC** to read the alerts you generated, read and unread.
 - *Data Vacuum* exfiltrates data; with a *Leak Site* and the full crown jewels you get **double extortion** even if they recover.
@@ -16,7 +27,7 @@ A Plague Inc.-style mobile browser strategy game. You run a ransomware crew insi
 
 ## Real-world labels (`js/labels.js`)
 
-Every entry vector and upgrade has a flavour name and a broad tactic category. `js/labels.js` lists all of them with an empty `{ id, name }` slot. Fill any slot with the real-world label you want players to learn (a framework technique ID and name, a CWE, an OWASP category, ...) and it shows up automatically:
+Every entry vector and upgrade (all four crews' trees) has a flavour name and a broad tactic category. `js/labels.js` lists all of them with an empty `{ id, name }` slot. Fill any slot with the real-world label you want players to learn (a framework technique ID and name, a CWE, an OWASP category, ...) and it shows up automatically:
 
 - on the initial-access cards,
 - in the EVOLVE tree detail ("Real-world name"),
@@ -30,7 +41,7 @@ Empty slots are simply hidden, so you can fill them in gradually. No other code 
 - Vanilla JS, single page, no build step, no dependencies
 - English and Ukrainian (auto-detected, switchable)
 - Built for portrait phones (landscape works too)
-- 5 targets, 7 entry vectors, 42 upgrades, 30 news events, SOC console, double extortion, access tiers
+- 4 crews with different goals, trees and win screens; 5 targets, 7 entry vectors, 86 upgrades, 30 news events, SOC console, double extortion, access tiers
 - NULL.FM: 20 minutes of procedurally generated darksynth composed live with the Web Audio API
 - Shareable PNG result card, native share sheet, Telegram share link
 
@@ -53,7 +64,8 @@ python3 -m http.server 8000
 The engine has no DOM, so a bot can play thousands of runs headless:
 
 ```sh
-node tools/sim.js 80     # win% (+double-extortion%) and average length per target x vector
+node tools/sim.js 80          # win% (+double-extortion%) and average length per crew x target x vector
+node tools/sim.js 80 skid     # one crew only
 ```
 
 `tools/og.html` is the source of `assets/og-image.jpg` (render it at 1200x630).
@@ -70,7 +82,8 @@ css/style.css         neon UI
 js/config.js          Telegram link, URLs, tick speed
 js/labels.js          real-world labels you fill in
 js/i18n.js            EN/UA interface strings
-js/data.js            targets, vectors, upgrade tree, events, SOC alerts (bilingual)
+js/data.js            targets, vectors, shared upgrade branches, events, SOC alerts (bilingual)
+js/factions.js        crews and their own branches
 js/game.js            simulation engine (no DOM, runs in node)
 js/map.js             canvas network map
 js/audio.js           NULL.FM generative radio + sound effects

@@ -1,6 +1,6 @@
 // Ransomware Inc. — real-world labels (fill these in yourself)
 //
-// Every entry vector and upgrade in the game has a flavour name. Here you can attach the real-world
+// Every entry vector and upgrade in the game has a flavour name (all four crews' trees are listed below). Here you can attach the real-world
 // framework label it stands for, e.g. a technique ID and its official name, a CWE number or an OWASP category.
 //
 //   id:   short code shown as a tag, e.g. 'T0000' or 'CWE-000'
@@ -66,7 +66,56 @@ RI.LABELS = {
     im_blitz:   { id: '', name: '' },
     im_safe:    { id: '', name: '' },
     im_auto:    { id: '', name: '' },
-    im_hyper:   { id: '', name: '' }
+    im_hyper:   { id: '', name: '' },
+    // CHAOS (Hacktivists)
+    ch_deface:  { id: '', name: '' },
+    ch_wiper:   { id: '', name: '' },
+    ch_dump:    { id: '', name: '' },
+    ch_swarm:   { id: '', name: '' },
+    ch_boot:    { id: '', name: '' },
+    ch_leak:    { id: '', name: '' },
+    ch_zero:    { id: '', name: '' },
+    ch_backup:  { id: '', name: '' },
+    ch_bomb:    { id: '', name: '' },
+    ch_brick:   { id: '', name: '' },
+    ch_kill:    { id: '', name: '' },
+    ch_scorch:  { id: '', name: '' },
+    // COLLECT (APT)
+    ap_collect: { id: '', name: '' },
+    ap_stage:   { id: '', name: '' },
+    ap_sleep:   { id: '', name: '' },
+    ap_mail:    { id: '', name: '' },
+    ap_hours:   { id: '', name: '' },
+    ap_nest:    { id: '', name: '' },
+    ap_tunnel:  { id: '', name: '' },
+    ap_flag:    { id: '', name: '' },
+    ap_bridge:  { id: '', name: '' },
+    ap_ghost:   { id: '', name: '' },
+    // COPYPASTA (Script Kiddies)
+    sk_gpt:     { id: '', name: '' },
+    sk_combo:   { id: '', name: '' },
+    sk_video:   { id: '', name: '' },
+    sk_rat:     { id: '', name: '' },
+    sk_guide:   { id: '', name: '' },
+    sk_paste:   { id: '', name: '' },
+    sk_thread:  { id: '', name: '' },
+    sk_docs:    { id: '', name: '' },
+    // CLOUT (Script Kiddies)
+    sk_chat:    { id: '', name: '' },
+    sk_brag:    { id: '', name: '' },
+    sk_beg:     { id: '', name: '' },
+    sk_alt:     { id: '', name: '' },
+    sk_vpn:     { id: '', name: '' },
+    sk_pfp:     { id: '', name: '' },
+    sk_mentor:  { id: '', name: '' },
+    // YOLO (Script Kiddies)
+    sk_spam:    { id: '', name: '' },
+    sk_usb:     { id: '', name: '' },
+    sk_admin:   { id: '', name: '' },
+    sk_booter:  { id: '', name: '' },
+    sk_energy:  { id: '', name: '' },
+    sk_google:  { id: '', name: '' },
+    sk_pray:    { id: '', name: '' }
   }
 };
 

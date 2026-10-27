@@ -10,6 +10,7 @@ window.RI = window.RI || {};
   var IR_RATE = [0, 0.03, 0.07, 0.13];
   var RESTORE = { none: 0, online: 0.012, offline: 0.02 };
   var PRIV_KINDS = { srv: 1, dc: 1, bkp: 1 };          // need ADMIN access
+  var HOLD = 24;                                       // APT: hours all objectives must hold
   var LOOT_RATE = { srv: 0.08, dc: 0.05, bkp: 0.04, web: 0.04, ws: 0.01 };   // GB per hour per foothold
 
   function mulberry32(a) {
@@ -117,6 +118,10 @@ window.RI = window.RI || {};
   function Game(opts) {
     this.diff = opts.difficulty;
     this.vector = opts.vector;
+    this.faction = opts.faction || RI.FACTIONS[0];
+    var fb = this.faction.branches;
+    this.branches = RI.BRANCHES.filter(function (b) { return fb.indexOf(b.id) !== -1; });
+    this.upgrades = RI.UPGRADES.filter(function (u) { return fb.indexOf(u.branch) !== -1; });
     this.name = opts.name || 'NULLMOTH';
     this.rand = opts.rand || Math.random;
     this.listener = opts.onEvent || function () {};
@@ -139,13 +144,21 @@ window.RI = window.RI || {};
       lootRate: 1, exfilNoise: 1,
       swarm: false, domain: false, gpo: false, domainCreds: false, keepDomain: false, sniff: false,
       phoenix: 0, backupHunter: false, blitz: false, jammer: false, payload: false,
-      exfil: false, leak: false, hyper: false
+      exfil: false, leak: false, hyper: false, heatMult: 1
     };
+    this.faction.init(this.p, this);
     this.owned = {};
     this.tactics = {};            // tactic categories used this run
     this.t = 0;
     this.compute = 4;
     this.loot = 0;
+    this.heat = 0;                // script kiddies: 100 = busted
+    this.peakHeat = 0;
+    this.darkUntil = 0;           // APT: quiet until this tick
+    this.holdSince = -1;          // APT: all objectives met since this tick
+    this.nextLeak = 40;
+    this.nextHunt = 60;           // script kiddies: the group chat leaks
+    this.actionReady = 0;         // dark / scrub cooldown
     this.detection = 0;
     this.peakDetection = 0;
     this.firstAlertAt = -1;
@@ -325,7 +338,7 @@ window.RI = window.RI || {};
   };
   G.costOf = function (u) { return u.cost; };
   G.buy = function (id) {
-    var u = RI.UPGRADES.filter(function (x) { return x.id === id; })[0];
+    var u = this.upgrades.filter(function (x) { return x.id === id; })[0];
     if (!u || !this.canBuy(u) || this.compute < this.costOf(u)) return false;
     this.compute -= this.costOf(u);
     this.owned[id] = true;
@@ -333,6 +346,7 @@ window.RI = window.RI || {};
     this.useTactic(u.tactic);
     u.fx(this.p, this);
     if (u.noise) this.addNoise(u.noise);
+    this.addHeat((u.heat || 0) + 2);   // script kiddies brag about every new toy
     var fh = this.randomFoothold();
     if (id === 'ev_wipe') this.soc('wipe', fh);
     else if (id === 'ev_blind') this.soc('blind', fh);
@@ -359,6 +373,42 @@ window.RI = window.RI || {};
     this.setAlert(3, true);
     this.emit('detonate', {});
     return true;
+  };
+
+  // ------------------------------------------------------------ faction actions
+  G.isDark = function () { return this.t < this.darkUntil; };
+  G.goDark = function () {
+    if (this.faction.action !== 'dark' || this.t < this.actionReady || this.over) return false;
+    this.darkUntil = this.t + 24;
+    this.actionReady = this.t + 120;
+    this.useTactic('evasion');
+    this.emit('headline', { key: 'dark', tone: 'ai' });
+    return true;
+  };
+  G.addHeat = function (x) {
+    if (this.faction.goal !== 'dc') return;
+    this.heat = Math.max(0, Math.min(100, this.heat + x * this.p.heatMult));
+    this.peakHeat = Math.max(this.peakHeat, this.heat);
+  };
+  G.scrub = function () {
+    if (this.faction.action !== 'scrub' || this.t < this.actionReady || this.over) return false;
+    this.heat = Math.max(0, this.heat - 15);
+    this.actionReady = this.t + 120;
+    this.emit('headline', { key: 'scrub', tone: 'ai' });
+    return true;
+  };
+  // APT objectives: [DOMAIN, crown jewels, reach]
+  G.objectives = function () {
+    return [this.domainActive(), this.loot >= this.lootGoal, this.infectedPct() >= (this.faction.reach || 0.5)];
+  };
+  G.progress = function () {
+    var goal = this.faction.goal;
+    if (goal === 'stealth') {
+      var o = this.objectives();
+      return ((o[0] ? 1 : 0) + this.lootPct() + Math.min(1, this.infectedPct() / (this.faction.reach || 0.5))) / 3;
+    }
+    if (goal === 'dc') return this.flags.dcEver ? 1 : this.accessLevel() / 2;
+    return this.encryptedPct();
   };
 
   G.collectBubble = function (id) {
@@ -416,7 +466,8 @@ window.RI = window.RI || {};
     var domainMult = domainActive ? (p.domain ? 1.8 : 1) * (p.domainCreds ? 1.5 : 1) : 1;
     var spreadMult = p.spread * this.mod('spread') * domainMult;
     var attempt = Math.min(0.9, 0.03 * spreadMult);
-    this.hosts.forEach(function (h) {
+    var dark = this.isDark();
+    if (!dark) this.hosts.forEach(function (h) {
       // encrypted hosts keep spreading at half speed: the implant is still running there
       var a = h.s === 'inf' ? attempt : h.s === 'enc' ? attempt * 0.5 : 0;
       if (a && r() < a && h.links.length) self.tryInfect(h, pick(h.links, r), domainActive);
@@ -442,7 +493,7 @@ window.RI = window.RI || {};
     }
 
     // ---- exfiltration
-    if (p.exfil && this.loot < this.lootGoal * 1.5) {
+    if (p.exfil && !dark && this.loot < this.lootGoal * 1.5) {
       var rate = 0, top = null, topRate = 0;
       this.hosts.forEach(function (h) {
         if (h.s !== 'inf' && h.s !== 'enc') return;
@@ -475,7 +526,7 @@ window.RI = window.RI || {};
     this.bubbles = this.bubbles.filter(function (b) { return self.t - b.born < b.life && b.host.s !== 'clean'; });
 
     // ---- inside bait: periodic fresh footholds
-    if (p.swarm && this.t >= this.nextSwarm) {
+    if (p.swarm && !dark && this.t >= this.nextSwarm) {
       this.nextSwarm = this.t + 30 + Math.floor(r() * 20);
       if (r() > D.awareness * 0.5) { this.infectRandom(1); this.addNoise(2.5); if (r() < 0.5) this.soc('swarm'); }
     }
@@ -490,8 +541,27 @@ window.RI = window.RI || {};
     }
 
     // ---- background noise from every live foothold, then decay; alert level ratchets up only
-    if (!this.detonated) this.addNoise(nInf * 0.0035);
-    this.detection = Math.max(0, this.detection - 0.035 * p.decay);
+    if (!this.detonated && !dark) this.addNoise(nInf * 0.0035);
+    this.detection = Math.max(0, this.detection - 0.035 * p.decay * (dark ? 3 : 1));
+    // script kiddies: being noticed turns into HEAT, and the group chat never forgets
+    if (this.faction.goal === 'dc') {
+      this.addHeat((0.24 + Math.pow(this.detection / 100, 1.2) * 0.8) * (0.6 + D.soc) + (this.alert >= 2 ? 0.1 : 0));
+      if (this.t >= this.nextLeak) {
+        this.nextLeak = this.t + 36 + Math.floor(r() * 24);
+        if (r() < 0.5) { this.addHeat(6); this.emit('headline', { key: 'chatLeak', tone: 'hot' }); }
+      }
+    }
+    // APT: the objectives have to hold for a full day before control counts as established
+    if (this.faction.goal === 'stealth') {
+      // long dwell attracts threat hunters: a periodic sweep that scales with SOC strength and your footprint
+      if (this.t >= this.nextHunt) {
+        this.nextHunt = this.t + 60 + Math.floor(r() * 30);
+        var found = nInf * 0.6 * D.soc * (1 - Math.min(0.6, p.evasion * 0.5)) * (dark ? 0.4 : 1);
+        if (found > 0.5) { this.addNoiseRaw(found); if (found > 4) this.emit('headline', { key: 'hunt', tone: 'hot' }); }
+      }
+      if (this.objectives().every(Boolean)) { if (this.holdSince < 0) { this.holdSince = this.t; this.emit('headline', { key: 'holding', tone: 'good' }); } }
+      else this.holdSince = -1;
+    }
     this.peakDetection = Math.max(this.peakDetection, this.detection);
     var lvl = 0;
     for (var i = 1; i < ALERT_AT.length; i++) if (this.detection >= ALERT_AT[i]) lvl = i;
@@ -517,7 +587,7 @@ window.RI = window.RI || {};
     var self = this;
     h.s = 'enc'; h.fx = 1; this.stats.encryptedEver++;
     this.emit('encrypt', { host: h });
-    if (this.stats.encryptedEver === 1) this.soc('enc', h);
+    if (this.stats.encryptedEver === 1) this.soc(this.faction.goal === 'wipe' ? 'wiper' : 'enc', h);
     if (this.p.hyper && h.kind === 'srv') {
       h.dept.hosts.forEach(function (o) { if (o.s === 'inf') { o.s = 'enc'; o.fx = 1; self.stats.encryptedEver++; self.emit('encrypt', { host: o }); } });
     }
@@ -540,6 +610,8 @@ window.RI = window.RI || {};
     }
     if (r() < D.mfa * 0.55 * (1 - Math.min(0.9, p.mfaBypass))) { st.mfa++; this.addNoise(0.25); if (r() < 0.1) this.soc('bmfa', dst, src); return; }
     if (dst.patched && r() > p.exploitBypass) { st.patch++; this.addNoise(0.15); if (r() < 0.12) this.soc('bpatch', dst, src); return; }
+    // script kiddies fumble the directory server: most attempts just make noise
+    if (dst.kind === 'dc' && this.faction.goal === 'dc' && r() > 0.12) { this.addHeat(2); this.addNoise(1); return; }
     this.infect(dst, src);
     this.useTactic('lateral');
     this.addNoise(cross ? 1.3 : 0.8);
@@ -590,12 +662,20 @@ window.RI = window.RI || {};
     // incident response progress bar
     var post = 1;
     if (det) post = (this.restoreBase > 0 ? 1.8 : 1.2) * p.irPostDet;
+    if (this.isDark()) post *= 0.5;   // the trail goes cold
     this.ir = Math.min(100, this.ir + IR_RATE[A] * this.diff.ir * (0.5 + D.soc) * (1 - Math.min(0.8, p.irSlow)) * this.mod('ir') * post);
   };
 
   G.checkEnd = function () {
-    var nInf = this.count('inf'), nEnc = this.count('enc');
-    if (nEnc >= this.winCount) return this.end('win');
+    var nInf = this.count('inf'), nEnc = this.count('enc'), goal = this.faction.goal;
+    if (goal === 'encrypt' || goal === 'wipe') { if (nEnc >= this.winCount) return this.end('win'); }
+    else if (goal === 'stealth') {
+      if (this.holdSince >= 0 && this.t - this.holdSince >= HOLD) return this.end('win');
+      if (this.alert >= 2) return this.end('burned');
+    } else if (goal === 'dc') {
+      if (this.flags.dcEver) return this.end('win');
+      if (this.heat >= 100) return this.end('busted');
+    }
     if (this.ir >= 100) return this.end(this.detonated ? 'restored' : 'contained');
     if (nInf + nEnc === 0) {
       var canRespawn = this.p.swarm && this.hosts.some(function (h) { return h.s === 'clean' && h.kind === 'ws' && !h.dept.airgap; });
@@ -625,10 +705,10 @@ window.RI = window.RI || {};
 
   G.score = function () {
     var di = RI.DIFFICULTIES.indexOf(this.diff);
-    var pct = this.encryptedPct();
+    var pct = this.progress();
     var s = pct * 40 + di * 14 + this.lootPct() * 8 + Object.keys(this.tactics).length * 0.5;
     if (this.outcome === 'win') {
-      s += 25;
+      s += 25 + (this.faction.goal === 'dc' ? 15 : this.faction.goal === 'stealth' ? 8 : 0);   // harder crews score more
       s += Math.max(0, 15 - this.t / 40);                          // speed
       s += Math.max(0, (80 - this.peakDetectionBeforeDet()) / 8);  // stealth before the bang
     } else if (this.outcome === 'extort') {
@@ -662,4 +742,5 @@ window.RI = window.RI || {};
   RI.Game = Game;
   RI.buildNetwork = buildNetwork;
   RI.ALERT_AT = ALERT_AT;
+  RI.APT_HOLD = HOLD;
 })();

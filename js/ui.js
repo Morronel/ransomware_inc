@@ -31,18 +31,22 @@ window.RI = window.RI || {};
            uk: 'Справжні атаки йдуть тим самим ланцюгом. Тут відчиненими дверима став захист «{weak}», а точніше його брак. Закрити хоча б одну ланку, особливо MFA, мінімальні привілеї, сегментацію чи офлайн-бекапи, означає перетворити катастрофу на всю компанію на просто поганий день в офісі.' },
     extort: { en: 'They recovered, and it still was not enough: the data was already gone. Backups answer encryption, not theft. Spotting large outbound transfers (DLP, egress monitoring) and limiting what any one account can read are what stop double extortion.',
               uk: 'Вони відновилися, і цього однаково замало: дані вже витекли. Бекапи — відповідь на шифрування, а не на крадіжку. Подвійне вимагання зупиняють моніторинг великих вихідних передач (DLP, контроль вихідного трафіку) і обмеження того, що може читати один обліковий запис.' },
+    burned: { en: 'Stealthy attackers are caught the same way loud ones are, just later: by someone looking. Proactive threat hunting, alerts that actually get read and a fast incident declaration are what end long, quiet intrusions.',
+              uk: 'Тихих нападників ловлять так само, як і гучних, просто пізніше: хтось має дивитися. Проактивний пошук загроз, алерти, які справді читають, і швидке оголошення інциденту — ось що завершує довгі тихі вторгнення.' },
+    busted: { en: 'Most low-skill attackers are caught by their own mistakes: bragging, reused accounts, traceable payments. But they still got in. Basic hygiene (MFA, patching, no default passwords) stops this kind of attacker long before the police have to.',
+              uk: 'Більшість низькокваліфікованих нападників ловлять на їхніх же помилках: хвастощі, повторні акаунти, платежі, які легко відстежити. Але вони таки проникли. Базова гігієна (MFA, оновлення, жодних паролів за замовчуванням) зупиняє таких нападників задовго до поліції.' },
     lose: { en: '{top} did the heavy lifting, but it never worked alone. Layered defense works because every control covers a different stage: when one misses, the next one catches you.',
             uk: 'Основну роботу зробив захист «{top}», але не сам. Багатошаровий захист працює, бо кожен засіб покриває інший етап: коли один схибить, наступний вас зловить.' }
   };
 
-  var store = { settings: { lang: null, sfx: true, music: true, volume: 70, seenHint: false }, best: {} };
+  var store = { settings: { lang: null, sfx: true, music: true, volume: 70, seenHint: false, faction: 'ransom' }, best: {} };
   function load() {
     try { var s = JSON.parse(localStorage.getItem(RI.CONFIG.STORAGE_KEY) || 'null'); if (s) { store.settings = Object.assign(store.settings, s.settings || {}); store.best = s.best || {}; } } catch (e) { /* storage blocked */ }
   }
   function save() { try { localStorage.setItem(RI.CONFIG.STORAGE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ } }
 
   var ui = RI.ui = {};
-  var sel = { diff: 0, vec: 0, name: '' };
+  var sel = { diff: 0, vec: 0, name: '', fac: 'ransom' };
   var game = null, view = null, speed = 1, acc = 0, lastFrame = 0, paused = false, rafId = 0;
   var tickerQueue = [], tickerBusyUntil = 0, firstEdr = false, hintTimer = 0, treeBranch = 'creds', treeSel = null;
   var socUnseen = 0, peakAccess = 0;
@@ -59,6 +63,12 @@ window.RI = window.RI || {};
   };
   function sfx(n) { RI.Audio.sfxPlay(n); }
   function upgradeById(id) { return RI.UPGRADES.filter(function (u) { return u.id === id; })[0]; }
+  function curFaction() { return RI.factionById(sel.fac); }
+  function bestKey(fid, did) { return fid === 'ransom' ? did : fid + ':' + did; }   // ransomware keeps the old save keys
+  function facVectors(f) { return RI.VECTORS.filter(function (v) { return !f.vectors || f.vectors.indexOf(v.id) !== -1; }); }
+  function goalLine(f, d) {
+    return RI.tf(f.id, 'winNeed', { pct: Math.round(d.winPct * 100), loot: d.loot, reach: Math.round((f.reach || 0.5) * 100) });
+  }
   function randomName() { return RI.CREW_NAMES[Math.floor(Math.random() * RI.CREW_NAMES.length)]; }
   function labelTag(kind, key) {
     var l = RI.label(kind, key);
@@ -105,17 +115,27 @@ window.RI = window.RI || {};
     }).join('');
   }
   function renderSetupCards() {
-    var tc = $('target-cards'), vc = $('vector-cards');
+    var tc = $('target-cards'), vc = $('vector-cards'), fc = $('faction-cards'), fac = curFaction();
+    fc.innerHTML = RI.FACTIONS.map(function (f) {
+      return '<div class="card fac' + (f.id === sel.fac ? ' sel' : '') + '" style="--fc:' + f.color + '" data-f="' + f.id + '">' +
+        '<span class="ftag">' + RI.L(f.tag) + '</span><div class="vicon">' + f.icon + '</div><h4>' + RI.L(f.name) + '</h4>' +
+        '<p>' + RI.L(f.blurb) + '</p><div class="goal">' + RI.t('factionGoal') + ': ' + RI.L(f.goalText) + '</div></div>';
+    }).join('');
+    qa('.card', fc).forEach(function (el) {
+      el.onclick = function () { sel.fac = el.dataset.f; store.settings.faction = sel.fac; save(); sfx('click'); renderSetupCards(); };
+    });
+    var vecs = facVectors(fac);
+    if (!vecs[sel.vec]) sel.vec = 0;
     tc.innerHTML = RI.DIFFICULTIES.map(function (d, i) {
-      var b = store.best[d.id];
+      var b = store.best[bestKey(fac.id, d.id)];
       return '<div class="card' + (i === sel.diff ? ' sel' : '') + '" data-i="' + i + '">' +
         (b ? '<span class="best">' + RI.t('best') + ': ' + RI.L(b.rank) + '</span>' : '') +
         '<div class="stars">' + '★'.repeat(d.stars) + '☆'.repeat(5 - d.stars) + '</div>' +
         '<h4>' + RI.L(d.name) + '</h4><p>' + RI.L(d.blurb) + '</p>' +
         '<div class="defs">' + defBars(d.def) + '</div>' +
-        '<div class="goal">' + RI.t('winNeed', { pct: Math.round(d.winPct * 100), loot: d.loot }) + '</div></div>';
+        '<div class="goal">' + goalLine(fac, d) + '</div></div>';
     }).join('');
-    vc.innerHTML = RI.VECTORS.map(function (v, i) {
+    vc.innerHTML = vecs.map(function (v, i) {
       var c = RI.DEFENSES[v.counter];
       return '<div class="card' + (i === sel.vec ? ' sel' : '') + '" data-i="' + i + '">' +
         '<div class="vicon">' + v.icon + '</div><h4>' + RI.L(v.name) + '</h4>' + labelTag('vectors', v.id) + '<p>' + RI.L(v.desc) + '</p>' +
@@ -131,8 +151,8 @@ window.RI = window.RI || {};
     sel.name = name;
     show('scr-game');
     var mr = $('map-wrap').getBoundingClientRect();
-    var diff = RI.DIFFICULTIES[sel.diff];
-    game = new RI.Game({ difficulty: diff, vector: RI.VECTORS[sel.vec], name: name, onEvent: onGameEvent,
+    var diff = RI.DIFFICULTIES[sel.diff], fac = curFaction();
+    game = new RI.Game({ faction: fac, difficulty: diff, vector: facVectors(fac)[sel.vec], name: name, onEvent: onGameEvent,
       cols: RI.mapCols && mr.height ? RI.mapCols(diff.depts.length, mr.width / mr.height) : 0 });
     $('scr-end').classList.remove('lose');
     if (!view) view = new RI.MapView($('map'));
@@ -142,11 +162,21 @@ window.RI = window.RI || {};
     speed = 1; $('btn-speed').textContent = '1×';
     acc = 0; lastFrame = performance.now(); paused = false; firstEdr = false;
     tickerQueue = []; tickerBusyUntil = 0; socUnseen = 0; peakAccess = 0;
-    treeBranch = 'creds'; treeSel = null;
+    treeBranch = game.branches[0].id; treeSel = null;
     $('hud-name').textContent = name;
+    var goal = fac.goal;
+    $('m-enc-l').setAttribute('data-i18n', goal === 'wipe' ? 'wiped' : goal === 'stealth' ? 'objectives' : goal === 'dc' ? 'pathDc' : 'encrypted');
+    $('m-exf-l').setAttribute('data-i18n', goal === 'dc' ? 'heat' : 'exfil');
+    $('m-enc-l').textContent = RI.t($('m-enc-l').getAttribute('data-i18n'));
+    $('m-exf-l').textContent = RI.t($('m-exf-l').getAttribute('data-i18n'));
+    document.querySelector('.m-enc').className = 'meter m-enc g-' + goal;
+    document.querySelector('.m-exf').classList.toggle('heat', goal === 'dc');
+    $('m-enc-goal').classList.toggle('hidden', goal === 'stealth' || goal === 'dc');
     $('m-enc-goal').style.left = Math.round(game.diff.winPct * 100) + '%';
+    $('m-inf-goal').classList.toggle('hidden', goal !== 'stealth');
+    $('m-inf-goal').style.left = Math.round((fac.reach || 0.5) * 100) + '%';
     $('btn-detonate').classList.remove('done');
-    $('det-label').textContent = RI.t('detonate');
+    $('btn-detonate').className = 'btn btn-detonate act-' + fac.action + (fac.goal === 'wipe' ? ' wipe' : '');
     $('tac-strip').innerHTML = RI.TACTIC_ORDER.map(function (k) { return '<i data-t="' + k + '"></i>'; }).join('');
     pushTicker(RI.t('h_start', { name: name, target: RI.L(game.diff.name) }), 'good');
     if (!store.settings.seenHint) {
@@ -189,16 +219,35 @@ window.RI = window.RI || {};
     var g = game;
     var inf = g.infectedPct(), enc = g.encryptedPct();
     $('m-inf').style.width = Math.round(inf * 100) + '%'; $('m-inf-v').textContent = Math.round(inf * 100) + '%';
-    $('m-enc').style.width = Math.round(enc * 100) + '%'; $('m-enc-v').textContent = Math.round(enc * 100) + '% / ' + Math.round(g.diff.winPct * 100) + '%';
-    $('m-exf').style.width = Math.round(g.lootPct() * 100) + '%';
-    $('m-exf-v').textContent = g.p.exfil ? Math.floor(g.loot) + ' / ' + g.lootGoal + ' GB' : RI.t('exfilLocked');
-    document.querySelector('.m-exf').classList.toggle('off', !g.p.exfil);
+    var fac = g.faction, goal = fac.goal;
+    if (goal === 'stealth') {
+      var o = g.objectives(), n = o.filter(Boolean).length;
+      $('m-enc').style.width = Math.round(n / 3 * 100) + '%';
+      $('m-enc-v').textContent = g.holdSince >= 0 ? RI.t('holdFor', { n: Math.max(0, RI.APT_HOLD - (g.t - g.holdSince)) })
+        : n + '/3' + (n < 3 ? ' · ' + RI.t(['objDomain', 'objLoot', 'objReach'][o.indexOf(false)]) : '');
+    } else if (goal === 'dc') {
+      $('m-enc').style.width = Math.round(g.progress() * 100) + '%';
+      $('m-enc-v').textContent = RI.t('access' + g.accessLevel()) + ' → DC';
+    } else {
+      $('m-enc').style.width = Math.round(enc * 100) + '%'; $('m-enc-v').textContent = Math.round(enc * 100) + '% / ' + Math.round(g.diff.winPct * 100) + '%';
+    }
+    if (goal === 'dc') {
+      $('m-exf').style.width = Math.round(g.heat) + '%';
+      $('m-exf-v').textContent = Math.round(g.heat) + '%';
+      document.querySelector('.m-exf').classList.remove('off');
+      document.querySelector('.m-exf').classList.toggle('hot', g.heat >= 70);
+    } else {
+      $('m-exf').style.width = Math.round(g.lootPct() * 100) + '%';
+      var exUp = fac.exfilUp && upgradeById(fac.exfilUp);
+      $('m-exf-v').textContent = g.p.exfil ? Math.floor(g.loot) + ' / ' + g.lootGoal + ' GB' : RI.t('exfilNeeds', { up: exUp ? RI.L(exUp.name) : '' });
+      document.querySelector('.m-exf').classList.toggle('off', !g.p.exfil);
+    }
     $('m-det').style.width = Math.round(g.detection) + '%';
     $('m-det-v').textContent = RI.t('alert' + g.alert);
     document.querySelector('.m-det').classList.toggle('a3', g.alert >= 3);
     $('m-ir').style.width = Math.round(g.ir) + '%';
     $('m-ir-v').textContent = Math.round(g.ir) + '% · ' + RI.t('irStage' + irStage(g));
-    $('hud-clock').textContent = 'T+ ' + ui.clock(g.t) + ' · ' + RI.L(g.diff.name);
+    $('hud-clock').textContent = g.faction.icon + ' T+ ' + ui.clock(g.t) + ' · ' + RI.L(g.diff.name);
     // access level badge
     var lvl = g.accessLevel(), badge = $('hud-access');
     if (lvl > peakAccess) { peakAccess = lvl; badge.classList.remove('up'); void badge.offsetWidth; badge.classList.add('up'); }
@@ -208,12 +257,10 @@ window.RI = window.RI || {};
     qa('#tac-strip i').forEach(function (el) { var on = !!g.tactics[el.dataset.t]; el.classList.toggle('on', on); if (on) used++; });
     $('m-tac-v').textContent = used + '/' + RI.TACTIC_ORDER.length;
     // buttons
-    var det = $('btn-detonate');
-    det.disabled = !g.p.payload || g.detonated;
-    if (g.detonated) { det.classList.add('done'); $('det-label').textContent = RI.t('detonated'); }
+    updateAction(g);
     var sb = $('soc-badge'); sb.textContent = socUnseen > 99 ? '99+' : socUnseen; sb.classList.toggle('hidden', socUnseen === 0);
     // affordable upgrades badge
-    var n = RI.UPGRADES.filter(function (u) { return g.canBuy(u) && g.compute >= g.costOf(u); }).length;
+    var n = g.upgrades.filter(function (u) { return g.canBuy(u) && g.compute >= g.costOf(u); }).length;
     if (n !== lastAffordable || force) {
       lastAffordable = n;
       var b = $('evolve-badge'); b.textContent = n; b.classList.toggle('hidden', n === 0);
@@ -221,6 +268,23 @@ window.RI = window.RI || {};
     }
     if ($('ovl-tree').classList.contains('open')) { $('tree-cpu').textContent = Math.floor(g.compute); }
     RI.Audio.setIntensity(g.detonated ? 1 : 0.15 + g.alert * 0.25 + g.detection / 400);
+  }
+
+  // third HUD button: strike (detonate / wipe), go dark (APT) or clear history (script kiddies)
+  function updateAction(g) {
+    var det = $('btn-detonate'), lbl = $('det-label'), icon = $('det-icon'), a = g.faction.action, wipe = g.faction.goal === 'wipe';
+    if (a === 'strike') {
+      icon.textContent = wipe ? '☠' : '☢';
+      det.disabled = !g.p.payload || g.detonated;
+      det.classList.toggle('done', g.detonated);
+      lbl.textContent = g.detonated ? RI.tf(g.faction.id, 'detonated') : RI.t(wipe ? 'wipeBtn' : 'detonate');
+      return;
+    }
+    var wait = Math.max(0, g.actionReady - g.t), on = a === 'dark' && g.isDark();
+    icon.textContent = a === 'dark' ? '🌑' : '🧽';
+    det.disabled = wait > 0;
+    det.classList.toggle('done', on);
+    lbl.textContent = on ? RI.t('darkOn', { n: g.darkUntil - g.t }) : wait > 0 ? RI.t('cooldown', { n: wait }) : RI.t(a === 'dark' ? 'darkBtn' : 'scrubBtn');
   }
 
   // ------------------------------------------------------------ ticker
@@ -264,7 +328,7 @@ window.RI = window.RI || {};
       case 'lockdown':
         pushTicker(RI.t('h_lockdown', { dept: RI.L(RI.DEPTS[d.dept.id]) }), 'hot', true); sfx('lockdown'); break;
       case 'detonate':
-        pushTicker(RI.t('h_detonate', { target: RI.L(game.diff.name) }), 'hot', true);
+        pushTicker(RI.tf(game.faction.id, 'h_detonate', { target: RI.L(game.diff.name) }), 'hot', true);
         sfx('detonate'); view.shake(); view.flashRed();
         $('map-wrap').classList.remove('shake'); void $('map-wrap').offsetWidth; $('map-wrap').classList.add('shake');
         if (navigator.vibrate) try { navigator.vibrate([200, 80, 300]); } catch (e) { /* no-op */ }
@@ -279,7 +343,7 @@ window.RI = window.RI || {};
         sfx('lost'); break;
       case 'bought': sfx('buy'); break;
       case 'end':
-        if (d.outcome === 'win') { playFinale(); break; }
+        if (d.outcome === 'win') { playFinale(game.faction.finale); break; }
         sfx(d.outcome === 'extort' ? 'win' : 'lose');
         setTimeout(showEnd, 1400);
         break;
@@ -305,10 +369,10 @@ window.RI = window.RI || {};
     }
     var tip = $('dept-tip'), d = h.dept, inf = 0, enc = 0;
     d.hosts.forEach(function (x) { if (x.s === 'inf') inf++; else if (x.s === 'enc') enc++; });
-    var html = '<b>' + RI.L(RI.DEPTS[d.id]) + '</b> · ' + RI.t('deptInfo', { inf: inf, enc: enc, tot: d.hosts.length });
+    var html = '<b>' + RI.L(RI.DEPTS[d.id]) + '</b> · ' + RI.tf(game.faction.id, 'deptInfo', { inf: inf, enc: enc, tot: d.hosts.length });
     if (h.host) {
       var st = h.host.s === 'clean' && h.host.patched ? 'patched' : h.host.s;
-      html = '<b>' + h.host.name + '</b> · ' + RI.t('hostInfo', { kind: RI.L(RI.KINDS[h.host.kind]), state: RI.t('st_' + st) }) + '<br><small>' + html + '</small>';
+      html = '<b>' + h.host.name + '</b> · ' + RI.t('hostInfo', { kind: RI.L(RI.KINDS[h.host.kind]), state: RI.tf(game.faction.id, 'st_' + st) }) + '<br><small>' + html + '</small>';
       view.selected = h.host;
     } else view.selected = null;
     tip.innerHTML = html;
@@ -320,17 +384,17 @@ window.RI = window.RI || {};
   function renderTree() {
     var g = game;
     $('tree-cpu').textContent = Math.floor(g.compute);
-    $('tree-tabs').innerHTML = RI.BRANCHES.map(function (b) {
-      var owned = RI.UPGRADES.filter(function (u) { return u.branch === b.id && g.owned[u.id]; }).length;
-      var total = RI.UPGRADES.filter(function (u) { return u.branch === b.id; }).length;
-      var afford = RI.UPGRADES.some(function (u) { return u.branch === b.id && g.canBuy(u) && g.compute >= u.cost; });
+    $('tree-tabs').innerHTML = g.branches.map(function (b) {
+      var owned = g.upgrades.filter(function (u) { return u.branch === b.id && g.owned[u.id]; }).length;
+      var total = g.upgrades.filter(function (u) { return u.branch === b.id; }).length;
+      var afford = g.upgrades.some(function (u) { return u.branch === b.id && g.canBuy(u) && g.compute >= u.cost; });
       return '<button style="--c:' + b.color + '" class="' + (b.id === treeBranch ? 'on' : '') + (afford ? ' can' : '') + '" data-b="' + b.id + '">' + RI.L(b.name) + '<small>' + owned + '/' + total + '</small></button>';
     }).join('');
     qa('#tree-tabs button').forEach(function (btn) {
       btn.onclick = function () { treeBranch = btn.dataset.b; treeSel = null; sfx('click'); renderTree(); };
     });
-    var branch = RI.BRANCHES.filter(function (b) { return b.id === treeBranch; })[0];
-    var ups = RI.UPGRADES.filter(function (u) { return u.branch === treeBranch; });
+    var branch = g.branches.filter(function (b) { return b.id === treeBranch; })[0];
+    var ups = g.upgrades.filter(function (u) { return u.branch === treeBranch; });
     if (!treeSel || upgradeById(treeSel).branch !== treeBranch) {
       var firstAvail = ups.filter(function (u) { return g.canBuy(u); })[0];
       treeSel = (firstAvail || ups[0]).id;
@@ -402,50 +466,92 @@ window.RI = window.RI || {};
   }
 
   // ------------------------------------------------------------ win finale
-  // The rest of the map goes red in a wave, the board glitches, then a lock screen counts the damage up
-  // before the debrief. Tap to skip once it has started.
-  function playFinale() {
-    var g = game, fin = $('finale'), wrap = $('map-wrap'), t0 = performance.now(), timers = [], done = false, rain = null;
+  // Each crew wins differently: the map flips in a wave (or not), the board reacts, then a themed screen counts the
+  // result up before the debrief. Tap to skip once it has started.
+  var FINALES = {
+    ransom: { to: 'enc', haze: '255,20,70', hit: true, boom: 'finale', stamp: 'lock',
+      emblem: '<div class="fin-lock"><i class="fin-shackle"></i><i class="fin-case"></i></div>',
+      rain: { glyphs: '0123456789ABCDEF'.split(''), rgb: '255,42,109' },
+      value: function (g) { return Math.round(g.encryptedPct() * 100); }, unit: '%',
+      target: function (g) { return RI.t('finTarget', { target: RI.L(g.diff.name).toUpperCase() }); },
+      extra: function (g, e) { return RI.t('finBtc', { btc: (g.ransom() * e).toFixed(1) }); } },
+    wipe: { to: 'enc', haze: '255,110,20', hit: true, boom: 'wipe', stamp: 'lost',
+      emblem: '<div class="fin-skull">☠&#xFE0E;</div>',
+      rain: { glyphs: ['0', '0', '0', '00'], rgb: '255,122,26' },
+      value: function (g) { return Math.round(g.encryptedPct() * 100); }, unit: '%',
+      target: function (g) { return RI.t('fin_wipe_target', { target: RI.L(g.diff.name).toUpperCase() }); },
+      extra: function () { return RI.t('fin_wipe_x'); } },
+    apt: { to: 'inf', haze: '40,224,255', hit: false, boom: 'ghost', stamp: 'mutation',
+      emblem: '<div class="fin-eye"><i></i></div>',
+      rain: { glyphs: ['0', '1'], rgb: '40,224,255', every: 90 },
+      value: function (g) { return Math.round(g.infectedPct() * 100); }, unit: '%',
+      target: function (g) { return RI.t('fin_apt_target', { target: RI.L(g.diff.name).toUpperCase() }); },
+      extra: function (g, e) { return RI.t('fin_apt_x', { gb: Math.round(g.loot * e), d: Math.round(g.peakDetection) }); } },
+    skid: { to: null, haze: '249,240,2', hit: true, boom: 'horn', stamp: 'horn',
+      emblem: '<div class="fin-meme">😎</div>',
+      rain: { glyphs: ['💀', '🔥', '😎', '💯', 'LOL', '1337', '🤑'], rgb: '249,240,2', every: 70, size: 26 },
+      value: function () { return 1337; }, unit: '',
+      target: function (g) { return RI.t('fin_skid_target', { target: RI.L(g.diff.name).toUpperCase() }); },
+      extra: function (g) { return RI.t('fin_skid_x', { h: Math.round(g.heat) }); } }
+  };
+
+  function playFinale(kind) {
+    var g = game, F = FINALES[kind] || FINALES.ransom, fin = $('finale'), wrap = $('map-wrap'), t0 = performance.now(), timers = [], done = false, rain = null;
     qa('.overlay.open').forEach(function (o) { o.classList.remove('open'); });
     $('dept-tip').classList.add('hidden'); $('hint').classList.add('hidden');
     view.selected = null;
-    RI.Audio.setIntensity(1);
-    sfx('detonate'); sfx('win');
-    vibrate([60, 40, 60, 40, 120]);
-    view.onFlip = function () { sfx('tick'); };
-    var cascade = view.startFinale();
+    RI.Audio.setIntensity(F.hit ? 1 : 0.3);
+    sfx(F.hit ? 'detonate' : 'mutation'); if (kind !== 'apt') sfx('win');
+    vibrate(F.hit ? [60, 40, 60, 40, 120] : 40);
+    var cascade = 1500;
+    if (F.to) {
+      view.onFlip = function () { sfx('tick'); };
+      cascade = view.startFinale({ to: F.to, haze: F.haze });
+    } else {
+      // script kiddies: no wave, just a lot of emoji coming off every host they touched
+      var mine = g.hosts.filter(function (h) { return h.s === 'inf'; }), EMO = ['💀', '🔥', '😎', '💯', 'GG', 'EZ'];
+      for (var i = 0; i < 16; i++) (function (i) {
+        timers.push(setTimeout(function () {
+          var h = mine[i % mine.length] || g.hosts[0];
+          view.floatText(h.x + (Math.random() - 0.5) * 20, h.y, EMO[i % EMO.length], '#f9f002'); sfx('bubble');
+        }, i * 90));
+      })(i);
+    }
 
-    var title = RI.t('winTitle');
+    var title = RI.tf(g.faction.id, 'winTitle');
     $('fin-title').textContent = title; $('fin-title').setAttribute('data-text', title);
-    $('fin-target').textContent = RI.t('finTarget', { target: RI.L(g.diff.name).toUpperCase() });
-    $('fin-pct').textContent = '0';
-    pushTicker(title + ' // ' + RI.L(g.diff.name).toUpperCase(), 'hot', true);
+    $('fin-emblem').innerHTML = F.emblem;
+    $('fin-target').textContent = F.target(g);
+    $('fin-pct').textContent = '0'; $('fin-unit').textContent = F.unit;
+    pushTicker(title + ' // ' + RI.L(g.diff.name).toUpperCase(), F.hit ? 'hot' : 'ai', true);
     $('fin-bar').style.width = '0';
     $('fin-btc').textContent = '';
-    fin.className = 'finale on';
+    fin.className = 'finale on k-' + kind;
     fin.onclick = function () { if (performance.now() - t0 > 900) finish(); };
 
     timers.push(setTimeout(function () {
-      view.shake(); view.flashRed(); sfx('lost');
-      wrap.classList.remove('fin-glitch'); void wrap.offsetWidth; wrap.classList.add('fin-glitch');
-      vibrate([200, 60, 300]);
+      if (F.hit) {
+        view.shake(); view.flashRed(); sfx('lost');
+        wrap.classList.remove('fin-glitch'); void wrap.offsetWidth; wrap.classList.add('fin-glitch');
+        vibrate([200, 60, 300]);
+      } else wrap.classList.add('fin-quiet');
     }, cascade));
     timers.push(setTimeout(function () {
-      fin.classList.add('show'); sfx('finale');
-      rain = startRain($('finale-rain'));
-      timers.push(setTimeout(function () { sfx('lock'); vibrate(90); }, 880));
-      countUp(Math.round(g.encryptedPct() * 100), g.ransom(), 1300);
+      fin.classList.add('show'); sfx(F.boom);
+      rain = startRain($('finale-rain'), F.rain);
+      timers.push(setTimeout(function () { sfx(F.stamp); vibrate(90); }, 880));
+      countUp(F.value(g), 1300);
     }, cascade + 600));
     timers.push(setTimeout(finish, cascade + 6000));
 
-    function countUp(toPct, btc, delay) {
+    function countUp(to, delay) {
       var s0 = performance.now() + delay, dur = 1500;
       (function step(now) {
         if (done) return;
         var k = Math.max(0, Math.min(1, (now - s0) / dur)), e = 1 - Math.pow(1 - k, 3);
-        $('fin-pct').textContent = Math.round(toPct * e);
-        $('fin-bar').style.width = (toPct * e) + '%';
-        if (k > 0) $('fin-btc').textContent = RI.t('finBtc', { btc: (btc * e).toFixed(1) });
+        $('fin-pct').textContent = Math.round(to * e);
+        $('fin-bar').style.width = Math.min(100, to * e) + '%';
+        if (k > 0) $('fin-btc').textContent = F.extra(g, e);
         if (k > 0 && k < 1) sfx('tick');
         if (k < 1) requestAnimationFrame(step);
       })(performance.now());
@@ -461,7 +567,7 @@ window.RI = window.RI || {};
         setTimeout(function () {
           if (rain) rain.stop();
           fin.className = 'finale'; fin.onclick = null;
-          wrap.classList.remove('fin-glitch');
+          wrap.classList.remove('fin-glitch', 'fin-quiet');
           view.onFlip = null;
         }, 700);
       }, 380);
@@ -470,23 +576,23 @@ window.RI = window.RI || {};
 
   function vibrate(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) { /* no-op */ } }
 
-  // falling hex columns behind the lock screen
-  function startRain(cv) {
+  // falling glyph columns behind the finale screen
+  function startRain(cv, o) {
     var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2), c = cv.getContext('2d');
     cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var fs = 14, cols = Math.ceil(r.width / fs), drops = [], id = 0, last = 0, HEX = '0123456789ABCDEF';
+    var fs = o.size || 14, cols = Math.ceil(r.width / fs), drops = [], id = 0, last = 0, every = o.every || 45;
     for (var i = 0; i < cols; i++) drops.push(Math.random() * -40);
     function step(now) {
       id = requestAnimationFrame(step);
-      if (now - last < 45) return;
+      if (now - last < every) return;
       last = now;
       c.fillStyle = 'rgba(6,0,4,0.18)'; c.fillRect(0, 0, r.width, r.height);
       c.font = '700 ' + fs + 'px JetBrains Mono, monospace'; c.textAlign = 'center';
       for (var i = 0; i < cols; i++) {
         var y = drops[i] * fs;
-        c.fillStyle = Math.random() < 0.08 ? '#ffd0dc' : 'rgba(255,42,109,0.55)';
-        c.fillText(HEX[(Math.random() * 16) | 0], i * fs + fs / 2, y);
+        c.fillStyle = Math.random() < 0.08 ? '#ffffff' : 'rgba(' + o.rgb + ',0.55)';
+        c.fillText(o.glyphs[(Math.random() * o.glyphs.length) | 0], i * fs + fs / 2, y);
         if (y > r.height && Math.random() > 0.96) drops[i] = 0; else drops[i]++;
       }
     }
@@ -496,21 +602,22 @@ window.RI = window.RI || {};
 
   // ------------------------------------------------------------ end screen
   function showEnd() {
-    var g = game, win = g.outcome === 'win', extort = g.outcome === 'extort';
+    var g = game, win = g.outcome === 'win', extort = g.outcome === 'extort', fid = g.faction.id;
     RI.Audio.setIntensity(win || extort ? 0.5 : 0.1);
     show('scr-end');
     $('scr-end').scrollTop = 0;
     $('scr-end').classList.toggle('lose', !win && !extort);
     $('scr-end').classList.toggle('extort', extort);
-    var title = RI.t(g.outcome + 'Title');
+    $('scr-end').style.setProperty('--fc', win ? g.faction.color : '');
+    var title = RI.tf(fid, g.outcome + 'Title');
     $('end-title').textContent = title; $('end-title').setAttribute('data-text', title);
-    $('end-sub').textContent = RI.t(g.outcome + 'Sub', { target: RI.L(g.diff.name), ransom: g.ransom() });
+    $('end-sub').textContent = RI.tf(fid, g.outcome + 'Sub', { target: RI.L(g.diff.name), ransom: g.ransom() });
 
     // best
-    var score = g.score(), prev = store.best[g.diff.id];
+    var score = g.score(), bk = bestKey(fid, g.diff.id), prev = store.best[bk];
     if (!prev || score > prev.score) {
       var rk = g.rank();
-      store.best[g.diff.id] = { score: score, rank: { en: rk.en, uk: rk.uk }, won: win };
+      store.best[bk] = { score: score, rank: { en: rk.en, uk: rk.uk }, won: win };
       save();
     }
 
@@ -524,13 +631,14 @@ window.RI = window.RI || {};
       [RI.t('sTime'), ui.clock(g.t)],
       [RI.t('sDwell'), ui.clock(g.dwell())],
       [RI.t('sAccess'), RI.t('access' + peakAccess)],
-      [RI.t('sEncrypted'), g.count('enc') + ' / ' + g.denom],
+      progressStat(g),
       [RI.t('sLoot'), Math.round(g.loot) + ' / ' + g.lootGoal + ' GB'],
       [RI.t('sDetect'), Math.round(g.peakDetectionBeforeDet()) + '%'],
       [RI.t('sAlerts'), g.stats.alertsSeen + ' / ' + g.stats.alerts],
       [RI.t('sPeak'), g.stats.peakInfected],
-      [RI.t('sUpgrades'), g.stats.upgrades + ' / ' + RI.UPGRADES.length]
+      [RI.t('sUpgrades'), g.stats.upgrades + ' / ' + g.upgrades.length]
     ];
+    if (g.faction.goal === 'dc') st.splice(5, 1, [RI.t('heat'), Math.round(g.peakHeat) + '%']);   // no loot for script kiddies
     $('stat-grid').innerHTML = st.map(function (s) { return '<div class="stat"><small>' + s[0] + '</small><b>' + s[1] + '</b></div>'; }).join('');
 
     // debrief
@@ -555,22 +663,29 @@ window.RI = window.RI || {};
       top.forEach(function (c, i) {
         if (i === 0) focus[c.def] = 'hit';
         var txt = RI.COUNTER_TEXT[c.key];
-        var hints = txt.hint.map(function (id) { return RI.L(upgradeById(id).name); }).join(', ');
+        var hints = txt.hint.filter(function (id) { return g.upgrades.some(function (u) { return u.id === id; }); })
+          .map(function (id) { return RI.L(upgradeById(id).name); }).join(', ');
         items.push('<li><span class="dname">' + RI.DEFENSES[c.def].icon + ' ' + RI.L(RI.DEFENSES[c.def].name) + '</span> <span class="stage">· ' + RI.L(RI.DEFENSES[c.def].stage) + '</span><br>' +
-          RI.fmt(RI.L(txt), { n: c.n }) + '<div class="tip">↳ ' + hints + '</div></li>');
+          RI.fmt(RI.L(txt), { n: c.n }) + (hints ? '<div class="tip">↳ ' + hints + '</div>' : '') + '</li>');
       });
-      if (!g.detonated) items.push('<li><span class="dname">⏱</span> ' + (RI.lang === 'uk'
+      if (g.outcome === 'burned') items.unshift('<li><span class="dname">📡</span> ' + (RI.lang === 'uk'
+        ? 'Тривога дійшла до рівня «інцидент». Для APT це кінець: сховатися вже не вийде.'
+        : 'The alert level reached "incident declared". For an APT that is the end: there is no hiding after that.') + '</li>');
+      if (g.outcome === 'busted') items.unshift('<li><span class="dname">🚨</span> ' + (RI.lang === 'uk'
+        ? 'ЖАР досяг 100%. Шум, хвастощі й злиті скріншоти привели слідчих просто до ваших дверей.'
+        : 'HEAT hit 100%. Noise, bragging and leaked screenshots led investigators straight to your door.') + '</li>');
+      if (!g.detonated && g.faction.action === 'strike') items.push('<li><span class="dname">⏱</span> ' + (RI.lang === 'uk'
         ? 'Ви так і не детонували. Тривога тільки зростає: зволікання — теж ризик.'
         : 'You never detonated. Alerts only ever go up: waiting is a risk too.') + '</li>');
       var topDef = top.length ? RI.L(RI.DEFENSES[top[0].def].name) : RI.L(RI.DEFENSES.soc.name);
-      $('lesson').textContent = RI.fmt(RI.L(LESSON.lose), { top: topDef });
+      $('lesson').textContent = LESSON[g.outcome] ? RI.L(LESSON[g.outcome]) : RI.fmt(RI.L(LESSON.lose), { top: topDef });
     }
     $('debrief').innerHTML = items.join('');
 
     // playbook: tactic categories in lifecycle order, with the upgrades/vector behind each
     var byTac = {};
     byTac.initial = [RI.L(g.vector.name) + (RI.label('vectors', g.vector.id) ? ' ' + labelTag('vectors', g.vector.id) : '')];
-    RI.UPGRADES.forEach(function (u) {
+    g.upgrades.forEach(function (u) {
       if (!g.owned[u.id]) return;
       (byTac[u.tactic] = byTac[u.tactic] || []).push(RI.L(u.name) + (RI.label('upgrades', u.id) ? ' ' + labelTag('upgrades', u.id) : ''));
     });
@@ -586,6 +701,13 @@ window.RI = window.RI || {};
       return '<div class="kc ' + (f || '') + '"><div class="ki">' + D.icon + '</div><div class="kn">' + RI.L(D.stage) +
         '<small>' + RI.L(D.name) + (f ? '<span class="tag">' + RI.t(f === 'hit' ? 'stoppedHere' : 'openDoor') + '</span>' : '') + '</small></div><div class="kb"><i style="width:' + Math.round(defStrength[k] * 100) + '%"></i></div></div>';
     }).join('');
+  }
+
+  function progressStat(g) {
+    var goal = g.faction.goal;
+    if (goal === 'stealth') return [RI.t('objectives'), g.objectives().filter(Boolean).length + ' / 3'];
+    if (goal === 'dc') return [RI.t('pathDc'), g.flags.dcEver ? 'DC ✓' : RI.t('access' + g.accessLevel())];
+    return [RI.tf(g.faction.id, 'sEncrypted'), g.count('enc') + ' / ' + g.denom];
   }
 
   // ------------------------------------------------------------ radio panel
@@ -631,6 +753,7 @@ window.RI = window.RI || {};
   // ------------------------------------------------------------ wiring
   function init() {
     load();
+    sel.fac = RI.factionById(store.settings.faction).id;
     RI.lang = store.settings.lang || ((navigator.language || '').toLowerCase().indexOf('uk') === 0 ? 'uk' : 'en');
     RI.Audio.sfxOn = store.settings.sfx;
     RI.Audio.volume = store.settings.volume / 100;
@@ -673,8 +796,16 @@ window.RI = window.RI || {};
     $('btn-evolve').onclick = function () { sfx('click'); renderTree(); openOvl('ovl-tree'); };
     $('btn-soc').onclick = function () { sfx('click'); renderSoc(); openOvl('ovl-soc'); };
     $('btn-detonate').onclick = function () {
-      if (!game || !game.p.payload || game.detonated) return;
+      if (!game || game.over) return;
+      var act = game.faction.action;
+      if (act === 'dark' || act === 'scrub') {
+        if (act === 'dark' ? game.goDark() : game.scrub()) { sfx('mutation'); updateHud(true); }
+        return;
+      }
+      if (!game.p.payload || game.detonated) return;
       sfx('click');
+      $('confirm-title').textContent = RI.tf(game.faction.id, 'confirmDetTitle');
+      $('confirm-body').textContent = RI.tf(game.faction.id, 'confirmDet');
       var w = game.backupState === 'online' ? RI.t('warnBackups') : game.backupState === 'offline' ? RI.t('warnOffline') : '';
       if (game.backupState === 'online' && game.p.backupHunter && game.hosts.some(function (h) { return h.kind === 'bkp' && h.s === 'inf'; })) w = '';
       if (game.p.leak && game.loot >= game.lootGoal) w = (w ? w + ' ' : '') + RI.t('warnLoot');

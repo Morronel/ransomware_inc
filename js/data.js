@@ -360,8 +360,8 @@ RI.UPGRADES = [
     fx: function (p) { p.mfaBypass += 0.2; p.segBypass += 0.15; } },
   { id: 'mv_policy', branch: 'move', tier: 4, col: 1, cost: 15, noise: 5, tactic: 'privesc', req: ['mv_deploy', 'mv_mgmt'],
     name: { en: 'Policy Push', uk: 'Розсилка політик' },
-    desc: { en: 'Own the directory server and every machine obeys you. Spread x1.8 while you hold DOMAIN control; encryption +60% if you detonate with it.',
-            uk: 'Захопіть сервер каталогу, і кожна машина вам кориться. Поширення x1.8, поки у вас контроль ДОМЕНУ; шифрування +60%, якщо детонувати з ним.' },
+    desc: { en: 'Own the directory server and every machine obeys you. Spread x1.8 while you hold DOMAIN control; your payload runs 60% faster if you strike with it.',
+            uk: 'Захопіть сервер каталогу, і кожна машина вам кориться. Поширення x1.8, поки у вас контроль ДОМЕНУ; пейлоад працює на 60% швидше, якщо вдарити з ним.' },
     fx: function (p) { p.domain = true; p.gpo = true; } },
 
   // ------------------------------------------------ EVADE: low and slow
@@ -508,7 +508,8 @@ RI.SOC = {
   swarm:   { sev: 'med',  en: 'Internal mail with attachment sent to many colleagues', uk: 'Внутрішній лист із вкладенням розіслано багатьом колегам' },
   wipe:    { sev: 'high', en: 'Security log on {host} was cleared', uk: 'Журнал безпеки на {host} очищено' },
   blind:   { sev: 'high', en: 'EDR sensor went silent on {host}', uk: 'Сенсор EDR на {host} замовк' },
-  enc:     { sev: 'crit', en: 'Mass file modification on {host}: ransomware behaviour', uk: 'Масова зміна файлів на {host}: поведінка програми-вимагача' }
+  enc:     { sev: 'crit', en: 'Mass file modification on {host}: ransomware behaviour', uk: 'Масова зміна файлів на {host}: поведінка програми-вимагача' },
+  wiper:   { sev: 'crit', en: 'Raw disk overwrite on {host}: wiper behaviour', uk: 'Перезапис диска напряму на {host}: поведінка вайпера' }
 };
 
 // ---------------------------------------------------------------- news events
