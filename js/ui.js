@@ -46,7 +46,7 @@ window.RI = window.RI || {};
   var ui = RI.ui = {};
   var sel = { diff: 0, vec: 0, name: '', fac: 'ransom' };
   var game = null, view = null, speed = 1, acc = 0, lastFrame = 0, paused = false, rafId = 0;
-  var tickerQueue = [], tickerBusyUntil = 0, firstEdr = false, hintTimer = 0, treeBranch = 'creds', treeSel = null;
+  var tickerQueue = [], tickerBusyUntil = 0, firstEdr = false, hintTimer = 0, treeBranch = 'access', treeSel = null;
   var socUnseen = 0, peakAccess = 0;
 
   // ------------------------------------------------------------ utils
@@ -197,7 +197,8 @@ window.RI = window.RI || {};
       if (ticked) updateHud();
     }
     view.draw(paused || game.over ? 0 : Math.min(1, acc / RI.CONFIG.TICK_MS));
-    $('cpu-val').textContent = Math.floor(game.compute);
+    var intel = Math.floor(game.compute);
+    $('cpu-val').textContent = intel; $('evolve-badge').textContent = '◆' + intel;   // same number in both places, every frame
     updateTicker(now);
     rafId = requestAnimationFrame(frame);
   }
@@ -254,7 +255,7 @@ window.RI = window.RI || {};
     var n = g.upgrades.filter(function (u) { return g.canBuy(u) && g.compute >= g.costOf(u); }).length;
     if (n !== lastAffordable || force) {
       lastAffordable = n;
-      var b = $('evolve-badge'); b.textContent = n; b.classList.toggle('hidden', n === 0);
+      $('evolve-badge').classList.toggle('hidden', n === 0);   // shown when something is affordable; the value is the intel itself
       $('btn-evolve').classList.toggle('can', n > 0);
     }
     if ($('ovl-tree').classList.contains('open')) { $('tree-cpu').textContent = Math.floor(g.compute); }
@@ -384,7 +385,7 @@ window.RI = window.RI || {};
       return '<button style="--c:' + b.color + '" class="' + (b.id === treeBranch ? 'on' : '') + (afford ? ' can' : '') + '" data-b="' + b.id + '">' + RI.L(b.name) + '<small>' + owned + '/' + total + '</small></button>';
     }).join('');
     qa('#tree-tabs button').forEach(function (btn) {
-      btn.onclick = function () { treeBranch = btn.dataset.b; treeSel = null; sfx('click'); renderTree(); };
+      btn.onclick = function () { treeBranch = btn.dataset.b; treeSel = null; $('tree-lines').parentNode.scrollTop = 0; sfx('click'); renderTree(); };
     });
     var branch = g.branches.filter(function (b) { return b.id === treeBranch; })[0];
     var ups = g.upgrades.filter(function (u) { return u.branch === treeBranch; });
@@ -406,7 +407,9 @@ window.RI = window.RI || {};
     // connector lines
     requestAnimationFrame(function () {
       var svg = $('tree-lines'), wrap = svg.parentNode, wr = wrap.getBoundingClientRect();
+      svg.style.height = '0';                        // measure the tree itself, not the previous tab's lines
       svg.setAttribute('width', wrap.scrollWidth); svg.setAttribute('height', wrap.scrollHeight);
+      svg.style.height = wrap.scrollHeight + 'px';   // the tree can be taller than the visible area
       var lines = '';
       ups.forEach(function (u) {
         u.req.forEach(function (r) {

@@ -1,6 +1,6 @@
 // Ransomware Inc. — playable factions (crew types) and their own skill-tree branches
 // Like everything else in the game, these are abstract flavour names over game rules. Real-world labels for each
-// upgrade go in js/labels.js. Shared branches (CREDS, MOVE, EVADE) live in js/data.js.
+// upgrade go in js/labels.js. Shared branches (ACCESS, EVADE) live in js/data.js.
 window.RI = window.RI || {};
 
 // goal:   encrypt = lock winPct of the network · wipe = destroy it · dc = touch the directory server once
@@ -11,7 +11,7 @@ window.RI = window.RI || {};
 RI.FACTIONS = [
   {
     id: 'ransom', icon: '🔒', color: '#ff2a6d', goal: 'encrypt', action: 'strike', finale: 'ransom', exfilUp: 'im_collect',
-    branches: ['creds', 'move', 'evade', 'impact'], vectors: null, tag: { en: 'CLASSIC', uk: 'КЛАСИКА' },
+    branches: ['access', 'evade', 'impact'], vectors: null, tag: { en: 'CLASSIC', uk: 'КЛАСИКА' },
     name: { en: 'Ransomware Gang', uk: 'Банда вимагачів' },
     blurb: { en: 'Get in, steal the crown jewels, lock everything, send the invoice. Professional, patient, greedy.',
              uk: 'Проникнути, вкрасти коштовності, заблокувати все й виставити рахунок. Професійно, терпляче, жадібно.' },
@@ -20,11 +20,11 @@ RI.FACTIONS = [
   },
   {
     id: 'apt', icon: '👁', color: '#28e0ff', goal: 'wipe', action: 'dark', finale: 'apt', exfilUp: 'ap_collect', lootFirst: true, hunted: true,
-    branches: ['creds', 'move', 'evade', 'collect', 'chaos'], vectors: null, tag: { en: 'HARD', uk: 'СКЛАДНО' },
+    branches: ['access', 'evade', 'collect', 'chaos'], vectors: null, tag: { en: 'QUIET', uk: 'ТИХО' },
     name: { en: 'APT', uk: 'APT' },
-    blurb: { en: 'Nation-state patience. Live in the network for weeks, take every secret, then erase it all so nothing can be traced back.',
-             uk: 'Терпіння державного рівня. Тижнями жити в мережі, забрати кожен секрет, а потім стерти все, щоб нічого не вказало на вас.' },
-    goalText: { en: 'Exfiltrate the crown jewels, then wipe the network', uk: 'Вивантажити коштовності, а потім стерти мережу' },
+    blurb: { en: 'Nation-state patience, nation-state goals. They do not want your money: they take every secret, then break everything for maximum disruption.',
+             uk: 'Державне терпіння, державні цілі. Їм не потрібні ваші гроші: вони забирають кожен секрет, а потім ламають усе заради максимального хаосу.' },
+    goalText: { en: 'Take the crown jewels, then wipe the network. No ransom, just disruption', uk: 'Забрати коштовності, а потім стерти мережу. Без викупу, лише хаос' },
     init: function (p) { p.noiseMult *= 0.85; p.spread *= 0.9; p.ransomMult = 0; }
   },
   {
@@ -52,7 +52,7 @@ RI.BRANCHES.push(
 
 // heat = instant HEAT for script kiddies (bragging has consequences)
 RI.UPGRADES.push(
-  // ------------------------------------------------ WIPER (APT): the last thing they never see coming
+  // ------------------------------------------------ WIPER (APT): no ransom note, no negotiation
   // ids keep the ch_ prefix so their labels in js/labels.js stay attached
   { id: 'ch_wiper', branch: 'chaos', tier: 0, col: 1, cost: 6, noise: 2, tactic: 'impact', req: [],
     name: { en: 'Wiper Builder', uk: 'Збирач вайпера' },

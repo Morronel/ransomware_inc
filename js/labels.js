@@ -16,7 +16,7 @@ RI.LABELS = {
     broker: { id: 'T1650', name: 'Acquire Access (IAB Marketplace)' }
   },
   upgrades: {
-    // CREDS
+    // ACCESS (credentials part)
     cr_map:     { id: 'T1087.002', name: 'Domain Account Discovery (BloodHound)' },
     cr_cookie:  { id: 'T1539', name: 'Steal Web Session Cookie (Evilginx)' },
     cr_dump:    { id: 'T1003.001', name: 'LSASS Memory (Mimikatz)' },
@@ -27,7 +27,7 @@ RI.LABELS = {
     cr_sync:    { id: 'T1003.006', name: 'DCSync (Mimikatz)' },
     cr_sniff:   { id: 'T1040', name: 'Network Sniffing (Responder)' },
     cr_golden:  { id: 'T1558.001', name: 'Golden Ticket (Mimikatz)' },
-    // MOVE
+    // ACCESS (movement part)
     mv_scan:     { id: 'T1046', name: 'Network Service Discovery (Nmap)' },
     mv_shares:   { id: 'T1021.002', name: 'SMB/Windows Admin Shares (PsExec)' },
     mv_intphish: { id: 'T1534', name: 'Internal Spearphishing' },

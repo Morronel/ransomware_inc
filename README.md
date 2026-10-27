@@ -9,16 +9,16 @@ A Plague Inc.-style mobile browser strategy game. You run a crew inside a fictio
 | Crew | Goal | Special rules | Win screen |
 |---|---|---|---|
 | 🔒 Ransomware Gang | Encrypt the target share of the network | DETONATE; double extortion with a leak site | red wave, padlock, ransom counter |
-| 👁 APT | Exfiltrate the full crown jewels, **then** wipe the network | quieter crew; **GO DARK** pauses everything and cools the trail, and turns into **WIPE** once the wiper is armed and the data is out; periodic SOC threat hunts | cyan wipe wave, watching eye, zero-fill rain |
+| 👁 APT | Exfiltrate the full crown jewels, **then** wipe the network: no ransom, just maximum disruption | quieter crew; **GO DARK** pauses everything and cools the trail, and turns into **WIPE** once the wiper is armed and the data is out; periodic SOC threat hunts | cyan wipe wave, watching eye, zero-fill rain |
 | 😎 Script Kiddies | Touch the directory server once | dumb-but-funny tree; every brag adds **HEAT**, 100% = **BUSTED**; **COVER UP** sheds heat | emoji rain, air horn, "GOT THE DC!!1" |
 
-Each crew has its own tree: Ransomware and APT share CREDS / MOVE / EVADE; Ransomware adds IMPACT, the APT adds COLLECT and WIPER (upgrade ids `ap_*` and `ch_*`); Script Kiddies get COPYPASTA, CLOUT and YOLO. Crews live in `js/factions.js`.
+Each crew has its own tree: Ransomware and APT share ACCESS (credentials + movement) and EVADE; Ransomware adds IMPACT, the APT adds COLLECT and WIPER (upgrade ids `ap_*` and `ch_*`); Script Kiddies get COPYPASTA, CLOUT and YOLO. Crews live in `js/factions.js`.
 
 ## Play
 
 - Pick a crew, a target (from "Garage Startup" to "Bank under DORA") and an initial access vector.
 - Footholds spread on their own. Tap the yellow ◆ intel caches and spend intel in **EVOLVE** across your crew's branches.
-- Access matters: servers, the directory and backups need ADMIN; holding the directory server gives DOMAIN control.
+- Access matters (the ACCESS branch): servers, the directory and backups need ADMIN; holding the directory server gives DOMAIN control.
 - Everything makes noise. Detection raises the alert level: triage, incident (password reset), containment (isolation and lockdowns). Tap **SOC** to read the alerts you generated, read and unread.
 - *Data Vacuum* exfiltrates data; with a *Leak Site* and the full crown jewels you get **double extortion** even if they recover.
 - Buy *Payload Builder* and hit **DETONATE** at the right moment. Then race the restore-from-backup bar.
