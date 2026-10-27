@@ -15,25 +15,18 @@ RI.LABELS = {
     broker: { id: 'T1650', name: 'Acquire Access (IAB Marketplace)' }
   },
   upgrades: {
-    // ACCESS (credentials part)
+    // ACCESS (one braided tree: credentials left, movement right, hybrids in the middle)
     cr_map:     { id: 'T1087.002', name: 'Domain Account Discovery (BloodHound)' },
     cr_cookie:  { id: 'T1539', name: 'Steal Web Session Cookie (Evilginx)' },
     cr_dump:    { id: 'T1003.001', name: 'LSASS Memory (Mimikatz)' },
-    cr_fatigue: { id: 'T1621', name: 'Multi-Factor Authentication Request Generation' },
     cr_roast:   { id: 'T1558.003', name: 'Kerberoasting (Rubeus)' },
-    cr_exploit: { id: 'T1068', name: 'Exploitation for Privilege Escalation (CVE PoC)' },
     cr_reuse:   { id: 'T1550.002', name: 'Pass the Hash (Impacket)' },
     cr_sync:    { id: 'T1003.006', name: 'DCSync (Mimikatz)' },
-    cr_sniff:   { id: 'T1040', name: 'Network Sniffing (Responder)' },
     cr_golden:  { id: 'T1558.001', name: 'Golden Ticket (Mimikatz)' },
-    // ACCESS (movement part)
     mv_scan:     { id: 'T1046', name: 'Network Service Discovery (Nmap)' },
     mv_shares:   { id: 'T1021.002', name: 'SMB/Windows Admin Shares (PsExec)' },
-    mv_intphish: { id: 'T1534', name: 'Internal Spearphishing' },
     mv_remexp:   { id: 'T1210', name: 'Exploitation of Remote Services (Metasploit)' },
     mv_desk:     { id: 'T1021.001', name: 'Remote Desktop Protocol (RDP)' },
-    mv_taint:    { id: 'T1204.002', name: 'Malicious File (LNK Trap)' },
-    mv_mgmt:     { id: 'T1219', name: 'Remote Access Software (RMM Abuse)' },
     mv_deploy:   { id: 'T1072', name: 'Software Deployment Tools (SCCM)' },
     mv_hijack:   { id: 'T1550.004', name: 'Web Session Cookie (AitM)' },
     mv_policy:   { id: 'T1484.001', name: 'Group Policy Modification (GPO)' },
