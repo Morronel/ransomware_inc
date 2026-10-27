@@ -11,7 +11,6 @@ RI.LABELS = {
     creds:  { id: 'T1555', name: 'Credentials from Password Stores (Combo Lists)' },
     web:    { id: 'T1190', name: 'Exploit Public-Facing Application (OWASP Top 10)' },
     vpn:    { id: 'T1133', name: 'External Remote Services (VPN)' },
-    usb:    { id: 'T1091', name: 'Replication Through Removable Media' },
     vendor: { id: 'T1195.002', name: 'Compromise Software Supply Chain (SolarWinds-style)' },
     broker: { id: 'T1650', name: 'Acquire Access (IAB Marketplace)' }
   },

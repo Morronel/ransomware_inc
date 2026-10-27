@@ -243,12 +243,6 @@ RI.VECTORS = [
             uk: 'Вхід адміна ІТ у віддалений доступ без MFA. Один плацдарм, зате одразу з правами адміна.' }
   },
   {
-    id: 'usb', icon: '💽', footholds: 2, noise: 0, counter: 'awareness', start: null,
-    name: { en: 'Parking-lot USB', uk: 'Флешка на парковці' },
-    desc: { en: 'Labelled "SALARIES 2026". Somebody always plugs it in. The quietest entrance of all.',
-            uk: 'Підписана «ЗАРПЛАТИ 2026». Хтось завжди її вставить. Найтихіший вхід із усіх.' }
-  },
-  {
     id: 'vendor', icon: '📦', footholds: 4, noise: 12, counter: 'edr', start: 'spread',
     name: { en: 'Poisoned Vendor Update', uk: 'Отруєне оновлення постачальника' },
     desc: { en: 'Ride along with software everyone trusts. Footholds across several departments at once, very loud.',

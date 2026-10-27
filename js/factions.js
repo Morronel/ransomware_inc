@@ -29,7 +29,7 @@ RI.FACTIONS = [
   },
   {
     id: 'skid', icon: '😎', color: '#f9f002', goal: 'dc', action: 'scrub', finale: 'skid', exfilUp: null,
-    branches: ['copypasta', 'clout', 'yolo'], vectors: ['phish', 'creds', 'web', 'usb'], tag: { en: 'NIGHTMARE', uk: 'ЖАХ' },
+    branches: ['copypasta', 'clout', 'yolo'], vectors: ['phish', 'creds', 'web'], tag: { en: 'NIGHTMARE', uk: 'ЖАХ' },
     name: { en: 'Script Kiddies', uk: 'Скрипт-кіді' },
     blurb: { en: 'Three teenagers, one group chat, zero OPSEC. Their tools are borrowed and their bragging is constant.',
              uk: 'Троє підлітків, один груповий чат, нуль OPSEC. Інструменти позичені, а хвастощі не припиняються.' },

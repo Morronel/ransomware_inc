@@ -40,7 +40,7 @@ Empty slots are simply hidden, so you can fill them in gradually. No other code 
 - Vanilla JS, single page, no build step, no dependencies
 - English and Ukrainian (auto-detected, switchable)
 - Built for portrait phones (landscape works too)
-- 3 crews with different goals, trees and win screens; 5 targets, 7 entry vectors, 82 upgrades, 30 news events, SOC console, double extortion, access tiers
+- 3 crews with different goals, trees and win screens; 5 targets, 6 entry vectors, 82 upgrades, 30 news events, SOC console, double extortion, access tiers
 - NULL.FM: 20 minutes of procedurally generated darksynth composed live with the Web Audio API
 - Shareable PNG result card, native share sheet, Telegram share link
 
