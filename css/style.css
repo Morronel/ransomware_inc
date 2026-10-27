@@ -436,7 +436,6 @@ h2.danger { color: var(--pink); }
 
 /* per-crew theme */
 .finale { --fc: #ff2a6d; --fc2: #ffb3c8; --fbg: 120,0,30; }
-.finale.k-wipe { --fc: #ff7a1a; --fc2: #ffd2a8; --fbg: 110,40,0; }
 .finale.k-apt  { --fc: #28e0ff; --fc2: #b6f6ff; --fbg: 0,60,80; }
 .finale.k-skid { --fc: #f9f002; --fc2: #fff9b0; --fbg: 90,0,110; }
 .fin-emblem { display: flex; justify-content: center; min-height: 96px; margin: 0 auto 18px; }
@@ -469,11 +468,10 @@ h2.danger { color: var(--pink); }
 .card.fac .ftag { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--fc); border: 1px solid var(--fc); border-radius: 4px; padding: 2px 6px; }
 .meter.m-exf.heat .m-bar i { background: linear-gradient(90deg, #f9f002, #ff3b3b); }
 .meter.m-exf.heat.hot .m-lbl b { color: #ff3b3b; animation: blink .8s infinite; }
-.meter.m-enc.g-wipe .m-bar i { background: linear-gradient(90deg, #ff7a1a, #ffd2a8); }
-.meter.m-enc.g-stealth .m-bar i { background: linear-gradient(90deg, #b14dff, #28e0ff); }
+.meter.m-enc.g-wipe .m-bar i { background: linear-gradient(90deg, #1ec8e8, #b6f6ff); }
 .meter.m-enc.g-dc .m-bar i { background: linear-gradient(90deg, #f9f002, #39ff88); }
 .btn-detonate.act-dark, .btn-detonate.act-scrub { border-color: var(--cyan); color: var(--cyan); background: rgba(40,224,255,0.08); }
 .btn-detonate.act-dark:not(:disabled), .btn-detonate.act-scrub:not(:disabled) { animation: none; box-shadow: 0 0 14px rgba(40,224,255,0.35); }
 .btn-detonate.act-dark.done { color: #b6f6ff; border-color: #b6f6ff; }
-.btn-detonate.wipe { background: linear-gradient(180deg, #ff9a3d, #c84a10); box-shadow: 0 0 20px rgba(255,122,26,0.45); }
-.btn-detonate.wipe.done { background: #3a1a05; color: #ff9a3d; }
+.btn-detonate.wipe { background: linear-gradient(180deg, #3ad8f5, #0b7f99); box-shadow: 0 0 20px rgba(40,224,255,0.45); }
+.btn-detonate.wipe.done { background: #062a33; color: #3ad8f5; }

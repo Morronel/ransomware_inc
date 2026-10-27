@@ -12,12 +12,10 @@ var PRIORITY = {
     'mv_remexp', 'im_stop', 'im_leak', 'ev_task', 'ev_mask', 'mv_deploy', 'cr_exploit', 'ev_proxy',
     'im_blitz', 'im_safe', 'mv_policy', 'cr_fatigue', 'cr_reuse', 'mv_mgmt', 'mv_hijack', 'mv_taint', 'cr_sniff',
     'cr_golden', 'ev_blind', 'ev_wipe', 'im_auto', 'im_hyper'],
-  hacktivist: ['ch_deface', 'ev_obf', 'cr_map', 'mv_scan', 'cr_dump', 'ev_web', 'ch_wiper', 'cr_cookie', 'mv_shares', 'ch_boot', 'ch_backup',
-    'ev_run', 'cr_roast', 'mv_desk', 'ev_inject', 'ch_dump', 'ch_swarm', 'ev_lotl', 'cr_sync', 'ch_zero', 'ch_leak', 'mv_remexp',
-    'ev_task', 'ev_mask', 'mv_deploy', 'ch_bomb', 'ch_kill', 'ch_brick', 'mv_policy', 'ch_scorch'],
   apt: ['ap_collect', 'ev_obf', 'cr_map', 'mv_scan', 'cr_dump', 'ev_web', 'ap_stage', 'ap_sleep', 'cr_cookie', 'mv_shares', 'ev_run',
     'ap_hours', 'cr_roast', 'mv_desk', 'ev_inject', 'ap_mail', 'ev_lotl', 'cr_sync', 'ap_tunnel', 'ap_flag', 'ev_mask', 'ap_nest',
-    'ap_bridge', 'ap_ghost', 'ev_proxy', 'mv_remexp', 'cr_exploit', 'cr_golden', 'mv_hijack'],
+    'ch_wiper', 'ch_boot', 'ap_bridge', 'ch_zero', 'ch_backup', 'ap_ghost', 'ch_brick', 'ch_kill', 'ch_bomb', 'ev_proxy', 'mv_remexp',
+    'cr_exploit', 'cr_golden', 'mv_hijack', 'ch_scorch'],
   skid: ['sk_gpt', 'sk_chat', 'sk_spam', 'sk_beg', 'sk_admin', 'sk_video', 'sk_guide', 'sk_vpn', 'sk_energy', 'sk_thread', 'sk_google',
     'sk_paste', 'sk_mentor', 'sk_pray', 'sk_alt', 'sk_combo', 'sk_docs']
 };
@@ -34,13 +32,13 @@ function play(fac, diff, vec, seed) {
       var u = prio[i];
       if (g.canBuy(u)) { if (g.compute >= u.cost) g.buy(u.id); break; }
     }
-    if (fac.action === 'dark' && g.detection > 30) g.goDark();
+    if (fac.action === 'dark' && g.detection > 30 && !g.canStrike()) g.goDark();
     if (fac.action === 'scrub' && g.heat > 45) g.scrub();
-    if (fac.action !== 'strike') continue;
+    if (!g.canStrike()) continue;
     // a sensible player waits until online backups are in reach, unless the blue team is closing in
     var holdsBkp = g.hosts.some(function (h) { return h.kind === 'bkp' && h.s === 'inf'; });
     var backupsReady = g.backupState !== 'online' || (g.p.backupHunter && holdsBkp);
-    if (g.p.payload && !g.detonated && ((g.infectedPct() > 0.8 && backupsReady) || g.infectedPct() > 0.92 ||
+    if (((g.infectedPct() > 0.8 && backupsReady) || g.infectedPct() > 0.92 ||
         (g.alert >= 3 && g.infectedPct() > 0.45) || g.ir > 55)) g.detonate();
   }
   return g;

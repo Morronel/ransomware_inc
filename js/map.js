@@ -26,7 +26,7 @@ window.RI = window.RI || {};
     this.game = g; this.lastState = {}; this.flash = []; this.floaters = []; this.fin = null;
     // wiped hosts look different from encrypted ones
     this.wipe = g.faction && g.faction.goal === 'wipe';
-    this.pal = Object.assign({}, COL, this.wipe ? { enc: '#ff7a1a', encRgb: '255,122,26', encZone: '70,25,5' } : { encRgb: '255,42,109', encZone: '80,10,40' });
+    this.pal = Object.assign({}, COL, this.wipe ? { enc: '#1ec8e8', encRgb: '40,224,255', encZone: '0,45,60' } : { encRgb: '255,42,109', encZone: '80,10,40' });
     g.hosts.forEach(function (h) { this.lastState[h.id] = h.s; }, this);
     this.layout();
   };
@@ -239,7 +239,7 @@ window.RI = window.RI || {};
       c.strokeStyle = S(h) === 'clean' ? (h.patched ? COL.patched : '#5a6aa0') : S(h) === 'iso' ? '#666' : '#fff';
       c.stroke();
       if (S(h) === 'enc' && self.wipe) { // wiped: a cross through the host
-        c.strokeStyle = '#2a0e00'; c.lineWidth = 2;
+        c.strokeStyle = '#002630'; c.lineWidth = 2;
         c.beginPath(); c.moveTo(h.x - r * 0.5, h.y - r * 0.5); c.lineTo(h.x + r * 0.5, h.y + r * 0.5);
         c.moveTo(h.x + r * 0.5, h.y - r * 0.5); c.lineTo(h.x - r * 0.5, h.y + r * 0.5); c.stroke();
       } else if (S(h) === 'enc') { // padlock glyph

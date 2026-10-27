@@ -73,7 +73,7 @@ window.RI = window.RI || {};
     c.beginPath(); c.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct / 100); c.stroke();
     c.shadowBlur = 0;
     c.fillStyle = '#fff'; c.font = '400 92px ' + display; c.fillText(pct + '%', cx, cy + 22);
-    c.fillStyle = '#9a90c8'; c.font = '700 24px ' + mono; c.fillText(RI.t(goal === 'wipe' ? 'wiped' : goal === 'stealth' ? 'objectives' : goal === 'dc' ? 'pathDc' : 'encrypted'), cx, cy + 66);
+    c.fillStyle = '#9a90c8'; c.font = '700 24px ' + mono; c.fillText(RI.t(goal === 'wipe' ? 'wiped' : goal === 'dc' ? 'pathDc' : 'encrypted'), cx, cy + 66);
 
     // stat row
     var stats = [

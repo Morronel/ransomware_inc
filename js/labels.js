@@ -62,13 +62,9 @@ RI.LABELS = {
     im_safe:    { id: 'T1562.001', name: 'Impair Defenses: Disable or Modify Tools (Safe Mode)' },
     im_auto:    { id: 'T1020', name: 'Automated Exfiltration' },
     im_hyper:   { id: 'T1486', name: 'Data Encrypted for Impact (Hypervisor)' },
-    // CHAOS (Hacktivists)
-    ch_deface:  { id: 'T1491.002', name: 'External Defacement' },
+    // WIPER (APT)
     ch_wiper:   { id: 'T1561.001', name: 'Disk Content Wipe' },
-    ch_dump:    { id: 'T1005', name: 'Data from Local System (Leak Site)' },
-    ch_swarm:   { id: 'T1496', name: 'Resource Hijacking (Crowdsourced Botnet)' },
     ch_boot:    { id: 'T1561.001', name: 'Disk Content Wipe (Boot Record)' },
-    ch_leak:    { id: 'T1567.002', name: 'Exfiltration to Cloud Storage (Public Dump)' },
     ch_zero:    { id: 'T1561', name: 'Disk Wipe (Zero-Fill)' },
     ch_backup:  { id: 'T1485', name: 'Data Destruction (Backup Burn)' },
     ch_bomb:    { id: 'T1053.005', name: 'Scheduled Task (Logic Bomb)' },

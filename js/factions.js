@@ -3,9 +3,11 @@
 // upgrade go in js/labels.js. Shared branches (CREDS, MOVE, EVADE) live in js/data.js.
 window.RI = window.RI || {};
 
-// goal:   encrypt = lock winPct of the network · wipe = destroy it · stealth = DOMAIN + crown jewels + reach, never contained
-//         dc = touch the directory server once
-// action: the third HUD button · strike = detonate the payload · dark = go quiet for a while · scrub = shed heat
+// goal:   encrypt = lock winPct of the network · wipe = destroy it · dc = touch the directory server once
+// action: the third HUD button · strike = detonate the payload · dark = go quiet for a while (turns into WIPE once the
+//         wiper is armed and the crown jewels are out) · scrub = shed heat
+// lootFirst: the payload can only be launched after the full crown jewels are exfiltrated
+// hunted: the SOC runs periodic threat hunts that scale with your footprint
 RI.FACTIONS = [
   {
     id: 'ransom', icon: '🔒', color: '#ff2a6d', goal: 'encrypt', action: 'strike', finale: 'ransom', exfilUp: 'im_collect',
@@ -17,23 +19,13 @@ RI.FACTIONS = [
     init: function () {}
   },
   {
-    id: 'hacktivist', icon: '✊', color: '#ff7a1a', goal: 'wipe', action: 'strike', finale: 'wipe', exfilUp: 'ch_dump',
-    branches: ['creds', 'move', 'evade', 'chaos'], vectors: null, tag: { en: 'LOUD', uk: 'ГУЧНО' },
-    name: { en: 'Hacktivists', uk: 'Хактивісти' },
-    blurb: { en: 'No ransom, no negotiation: they want the company gone. Wipers run fast, but the crew loves an audience.',
-             uk: 'Ні викупу, ні переговорів: вони хочуть, щоб компанії не стало. Вайпери швидкі, але команда любить публіку.' },
-    goalText: { en: 'Wipe the network', uk: 'Стерти мережу' },
-    init: function (p) { p.noiseMult *= 1.15; p.encSpeed += 0.3; p.ransomMult = 0; }
-  },
-  {
-    id: 'apt', icon: '👁', color: '#28e0ff', goal: 'stealth', action: 'dark', finale: 'apt', exfilUp: 'ap_collect', reach: 0.6,
-    branches: ['creds', 'move', 'evade', 'collect'], vectors: null, tag: { en: 'HARD', uk: 'СКЛАДНО' },
+    id: 'apt', icon: '👁', color: '#28e0ff', goal: 'wipe', action: 'dark', finale: 'apt', exfilUp: 'ap_collect', lootFirst: true, hunted: true,
+    branches: ['creds', 'move', 'evade', 'collect', 'chaos'], vectors: null, tag: { en: 'HARD', uk: 'СКЛАДНО' },
     name: { en: 'APT', uk: 'APT' },
-    blurb: { en: 'Nation-state patience. Never break anything, never be seen: own the domain, take the secrets, stay forever.',
-             uk: 'Терпіння державного рівня. Нічого не ламати, ніколи не світитися: захопити домен, забрати секрети, лишитися назавжди.' },
-    goalText: { en: 'DOMAIN control + crown jewels + half the network. Containment = burned.',
-                uk: 'Контроль ДОМЕНУ + коштовності + половина мережі. Стримування = вас спалено.' },
-    init: function (p) { p.noiseMult *= 0.85; p.spread *= 0.9; p.lootRate *= 0.8; }
+    blurb: { en: 'Nation-state patience. Live in the network for weeks, take every secret, then erase it all so nothing can be traced back.',
+             uk: 'Терпіння державного рівня. Тижнями жити в мережі, забрати кожен секрет, а потім стерти все, щоб нічого не вказало на вас.' },
+    goalText: { en: 'Exfiltrate the crown jewels, then wipe the network', uk: 'Вивантажити коштовності, а потім стерти мережу' },
+    init: function (p) { p.noiseMult *= 0.85; p.spread *= 0.9; p.ransomMult = 0; }
   },
   {
     id: 'skid', icon: '😎', color: '#f9f002', goal: 'dc', action: 'scrub', finale: 'skid', exfilUp: null,
@@ -51,7 +43,7 @@ RI.factionById = function (id) {
 };
 
 RI.BRANCHES.push(
-  { id: 'chaos',     color: '#ff7a1a', name: { en: 'CHAOS',     uk: 'ХАОС' } },
+  { id: 'chaos',     color: '#ff7a1a', name: { en: 'WIPER',     uk: 'ВАЙПЕР' } },
   { id: 'collect',   color: '#b14dff', name: { en: 'COLLECT',   uk: 'ЗБІР' } },
   { id: 'copypasta', color: '#f9f002', name: { en: 'COPYPASTA', uk: 'КОПІПАСТА' } },
   { id: 'clout',     color: '#ff7ad9', name: { en: 'CLOUT',     uk: 'ХАЙП' } },
@@ -60,58 +52,41 @@ RI.BRANCHES.push(
 
 // heat = instant HEAT for script kiddies (bragging has consequences)
 RI.UPGRADES.push(
-  // ------------------------------------------------ CHAOS (hacktivists): burn it down, loudly
-  { id: 'ch_deface', branch: 'chaos', tier: 0, col: 0, cost: 3, noise: 3, tactic: 'impact', req: [],
-    name: { en: 'Defacer', uk: 'Дефейсер' },
-    desc: { en: 'Your manifesto replaces the company homepage. Supporters start chipping in: intel +20%.',
-            uk: 'Ваш маніфест замінює головну сторінку компанії. Прихильники починають допомагати: розвіддані +20%.' },
-    fx: function (p) { p.computeMult += 0.2; } },
-  { id: 'ch_wiper', branch: 'chaos', tier: 0, col: 2, cost: 6, noise: 4, tactic: 'impact', req: [],
+  // ------------------------------------------------ WIPER (APT): the last thing they never see coming
+  // ids keep the ch_ prefix so their labels in js/labels.js stay attached
+  { id: 'ch_wiper', branch: 'chaos', tier: 0, col: 1, cost: 6, noise: 2, tactic: 'impact', req: [],
     name: { en: 'Wiper Builder', uk: 'Збирач вайпера' },
-    desc: { en: 'Arms the wiper. Unlocks WIPE.', uk: 'Озброює вайпер. Відкриває СТИРАННЯ.' },
+    desc: { en: 'Arms the wiper. WIPE unlocks once the full crown jewels are exfiltrated.', uk: 'Озброює вайпер. СТИРАННЯ відкривається, щойно всі коштовності вивантажено.' },
     fx: function (p) { p.payload = true; } },
-  { id: 'ch_dump', branch: 'chaos', tier: 1, col: 0, cost: 5, noise: 2, tactic: 'collection', req: ['ch_deface'],
-    name: { en: 'Data Dump', uk: 'Злив даних' },
-    desc: { en: 'Copies internal files out to publish later. Unlocks the EXFIL meter.', uk: 'Копіює внутрішні файли назовні, щоб потім опублікувати. Відкриває шкалу ЕКСФІЛ.' },
-    fx: function (p) { p.exfil = true; } },
-  { id: 'ch_swarm', branch: 'chaos', tier: 1, col: 1, cost: 6, noise: 3, tactic: 'execution', req: ['ch_deface', 'ch_wiper'],
-    name: { en: 'Volunteer Army', uk: 'Армія добровольців' },
-    desc: { en: 'Supporters run your tool from all over the world. +30% spread.', uk: 'Прихильники запускають ваш інструмент з усього світу. +30% поширення.' },
-    fx: function (p) { p.spread += 0.3; } },
-  { id: 'ch_boot', branch: 'chaos', tier: 1, col: 2, cost: 7, noise: 3, tactic: 'impact', req: ['ch_wiper'],
+  { id: 'ch_boot', branch: 'chaos', tier: 1, col: 0, cost: 7, noise: 2, tactic: 'impact', req: ['ch_wiper'],
     name: { en: 'Boot Breaker', uk: 'Ламач завантаження' },
     desc: { en: 'Wiped machines will not even start. Restores run 50% slower.', uk: 'Стерті машини навіть не запускаються. Відновлення йде на 50% повільніше.' },
     fx: function (p) { p.restoreMult *= 0.5; } },
-  { id: 'ch_leak', branch: 'chaos', tier: 2, col: 0, cost: 8, noise: 3, tactic: 'exfil', req: ['ch_dump'],
-    name: { en: 'Public Dump', uk: 'Публічний злив' },
-    desc: { en: 'Everything you took goes public. Exfil +60%. With the full crown jewels, even a restored company still loses.',
-            uk: 'Усе, що ви забрали, стає публічним. Ексфіл +60%. З усіма коштовностями навіть відновлена компанія програє.' },
-    fx: function (p) { p.leak = true; p.lootRate += 0.6; } },
-  { id: 'ch_zero', branch: 'chaos', tier: 2, col: 1, cost: 9, noise: 4, tactic: 'impact', req: ['ch_swarm', 'ch_boot'],
+  { id: 'ch_zero', branch: 'chaos', tier: 1, col: 2, cost: 8, noise: 2, tactic: 'impact', req: ['ch_wiper'],
     name: { en: 'Zero-Fill', uk: 'Заповнення нулями' },
     desc: { en: 'Skips the files and overwrites whole disks. Wipe speed +60%.', uk: 'Пропускає файли й перезаписує диски цілком. Швидкість стирання +60%.' },
     fx: function (p) { p.encSpeed += 0.6; } },
-  { id: 'ch_backup', branch: 'chaos', tier: 2, col: 2, cost: 10, noise: 5, tactic: 'impact', req: ['ch_boot'],
+  { id: 'ch_backup', branch: 'chaos', tier: 2, col: 0, cost: 10, noise: 3, tactic: 'impact', req: ['ch_boot'],
     name: { en: 'Backup Burner', uk: 'Палій бекапів' },
     desc: { en: 'If you hold a backup server when you strike, online backups burn with everything else. Useless against offline backups.',
             uk: 'Якщо на момент удару у вас є сервер бекапів, онлайн-бекапи згорять разом з усім іншим. Безсилий проти офлайн-бекапів.' },
     fx: function (p) { p.backupHunter = true; } },
-  { id: 'ch_bomb', branch: 'chaos', tier: 3, col: 0, cost: 11, noise: 4, tactic: 'impact', req: ['ch_leak', 'ch_zero'],
-    name: { en: 'Logic Bomb', uk: 'Логічна бомба' },
-    desc: { en: 'Every implant goes off at the same minute. Wipe x2.5 for the first 15 hours after the strike.',
-            uk: 'Усі імпланти спрацьовують в одну хвилину. Стирання x2.5 перші 15 годин після удару.' },
-    fx: function (p) { p.blitz = true; } },
-  { id: 'ch_brick', branch: 'chaos', tier: 3, col: 1, cost: 12, noise: 4, tactic: 'impact', req: ['ch_zero'],
+  { id: 'ch_brick', branch: 'chaos', tier: 2, col: 1, cost: 11, noise: 2, tactic: 'impact', req: ['ch_boot', 'ch_zero'],
     name: { en: 'Firmware Brick', uk: 'Цеглина з прошивки' },
     desc: { en: 'Some machines need new hardware, not a restore. Blue team recovery after the strike -25%.',
             uk: 'Деяким машинам потрібне нове залізо, а не відновлення. Відновлення синіх після удару -25%.' },
     fx: function (p) { p.irPostDet *= 0.75; } },
-  { id: 'ch_kill', branch: 'chaos', tier: 3, col: 2, cost: 12, noise: 4, tactic: 'evasion', req: ['ch_backup'],
+  { id: 'ch_kill', branch: 'chaos', tier: 2, col: 2, cost: 11, noise: 3, tactic: 'evasion', req: ['ch_zero'],
     name: { en: 'Sensor Killer', uk: 'Вбивця сенсорів' },
     desc: { en: 'Takes the security agents down first. After the strike: isolation -40%, EDR -60%.',
             uk: 'Спершу вимикає агенти захисту. Після удару: ізоляція -40%, EDR -60%.' },
     fx: function (p) { p.jammer = true; } },
-  { id: 'ch_scorch', branch: 'chaos', tier: 4, col: 1, cost: 15, noise: 6, tactic: 'impact', req: ['ch_bomb', 'ch_brick'],
+  { id: 'ch_bomb', branch: 'chaos', tier: 3, col: 1, cost: 12, noise: 2, tactic: 'impact', req: ['ch_backup', 'ch_brick', 'ch_kill'],
+    name: { en: 'Logic Bomb', uk: 'Логічна бомба' },
+    desc: { en: 'Every implant goes off at the same minute. Wipe x2.5 for the first 15 hours after the strike.',
+            uk: 'Усі імпланти спрацьовують в одну хвилину. Стирання x2.5 перші 15 годин після удару.' },
+    fx: function (p) { p.blitz = true; } },
+  { id: 'ch_scorch', branch: 'chaos', tier: 4, col: 1, cost: 15, noise: 4, tactic: 'impact', req: ['ch_bomb'],
     name: { en: 'Scorched Earth', uk: 'Випалена земля' },
     desc: { en: 'Wipe a server and everything that depends on it goes too: every infected host in its department is destroyed with it.',
             uk: 'Зітріть сервер, і все, що від нього залежить, зникне теж: усі заражені хости його відділу знищено разом з ним.' },
@@ -120,8 +95,8 @@ RI.UPGRADES.push(
   // ------------------------------------------------ COLLECT (APT): take everything, leave nothing
   { id: 'ap_collect', branch: 'collect', tier: 0, col: 1, cost: 4, noise: 1, tactic: 'collection', req: [],
     name: { en: 'Quiet Collector', uk: 'Тихий збирач' },
-    desc: { en: 'Starts sipping data out a little at a time. Unlocks the EXFIL meter: servers hold the most.',
-            uk: 'Починає потроху сьорбати дані назовні. Відкриває шкалу ЕКСФІЛ: найбільше на серверах.' },
+    desc: { en: 'Starts sipping data out a little at a time. Unlocks the EXFIL meter: servers hold the most. Fill it before you wipe.',
+            uk: 'Починає потроху сьорбати дані назовні. Відкриває шкалу ЕКСФІЛ: найбільше на серверах. Заповніть її, перш ніж стирати.' },
     fx: function (p) { p.exfil = true; } },
   { id: 'ap_stage', branch: 'collect', tier: 1, col: 0, cost: 5, noise: 0, tactic: 'collection', req: ['ap_collect'],
     name: { en: 'Staging Cache', uk: 'Перевалочний кеш' },

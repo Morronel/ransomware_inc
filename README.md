@@ -9,11 +9,10 @@ A Plague Inc.-style mobile browser strategy game. You run a crew inside a fictio
 | Crew | Goal | Special rules | Win screen |
 |---|---|---|---|
 | 🔒 Ransomware Gang | Encrypt the target share of the network | DETONATE; double extortion with a leak site | red wave, padlock, ransom counter |
-| ✊ Hacktivists | Wipe it instead | wipers are faster, the crew is louder, no ransom; public dump instead of extortion | orange wave, skull, zero-fill rain |
-| 👁 APT | DOMAIN control + crown jewels + 60% reach, held for a full day | no payload; **GO DARK** pauses everything and cools the trail; threat hunts sweep for long dwell; an incident declaration means **BURNED** | silent cyan takeover, watching eye |
+| 👁 APT | Exfiltrate the full crown jewels, **then** wipe the network | quieter crew; **GO DARK** pauses everything and cools the trail, and turns into **WIPE** once the wiper is armed and the data is out; periodic SOC threat hunts | cyan wipe wave, watching eye, zero-fill rain |
 | 😎 Script Kiddies | Touch the directory server once | dumb-but-funny tree; every brag adds **HEAT**, 100% = **BUSTED**; **COVER UP** sheds heat | emoji rain, air horn, "GOT THE DC!!1" |
 
-Each crew has its own tree: Ransomware, Hacktivists and APT share CREDS / MOVE / EVADE and get their own fourth branch (IMPACT, CHAOS, COLLECT); Script Kiddies get COPYPASTA, CLOUT and YOLO. Crews live in `js/factions.js`.
+Each crew has its own tree: Ransomware and APT share CREDS / MOVE / EVADE; Ransomware adds IMPACT, the APT adds COLLECT and WIPER (upgrade ids `ap_*` and `ch_*`); Script Kiddies get COPYPASTA, CLOUT and YOLO. Crews live in `js/factions.js`.
 
 ## Play
 
@@ -27,7 +26,7 @@ Each crew has its own tree: Ransomware, Hacktivists and APT share CREDS / MOVE /
 
 ## Real-world labels (`js/labels.js`)
 
-Every entry vector and upgrade (all four crews' trees) has a flavour name and a broad tactic category. `js/labels.js` lists all of them with an empty `{ id, name }` slot. Fill any slot with the real-world label you want players to learn (a framework technique ID and name, a CWE, an OWASP category, ...) and it shows up automatically:
+Every entry vector and upgrade (every crew's tree) has a flavour name and a broad tactic category. `js/labels.js` lists all of them with an empty `{ id, name }` slot. Fill any slot with the real-world label you want players to learn (a framework technique ID and name, a CWE, an OWASP category, ...) and it shows up automatically:
 
 - on the initial-access cards,
 - in the EVOLVE tree detail ("Real-world name"),
@@ -41,7 +40,7 @@ Empty slots are simply hidden, so you can fill them in gradually. No other code 
 - Vanilla JS, single page, no build step, no dependencies
 - English and Ukrainian (auto-detected, switchable)
 - Built for portrait phones (landscape works too)
-- 4 crews with different goals, trees and win screens; 5 targets, 7 entry vectors, 86 upgrades, 30 news events, SOC console, double extortion, access tiers
+- 3 crews with different goals, trees and win screens; 5 targets, 7 entry vectors, 82 upgrades, 30 news events, SOC console, double extortion, access tiers
 - NULL.FM: 20 minutes of procedurally generated darksynth composed live with the Web Audio API
 - Shareable PNG result card, native share sheet, Telegram share link
 

@@ -31,8 +31,6 @@ window.RI = window.RI || {};
            uk: 'Справжні атаки йдуть тим самим ланцюгом. Тут відчиненими дверима став захист «{weak}», а точніше його брак. Закрити хоча б одну ланку, особливо MFA, мінімальні привілеї, сегментацію чи офлайн-бекапи, означає перетворити катастрофу на всю компанію на просто поганий день в офісі.' },
     extort: { en: 'They recovered, and it still was not enough: the data was already gone. Backups answer encryption, not theft. Spotting large outbound transfers (DLP, egress monitoring) and limiting what any one account can read are what stop double extortion.',
               uk: 'Вони відновилися, і цього однаково замало: дані вже витекли. Бекапи — відповідь на шифрування, а не на крадіжку. Подвійне вимагання зупиняють моніторинг великих вихідних передач (DLP, контроль вихідного трафіку) і обмеження того, що може читати один обліковий запис.' },
-    burned: { en: 'Stealthy attackers are caught the same way loud ones are, just later: by someone looking. Proactive threat hunting, alerts that actually get read and a fast incident declaration are what end long, quiet intrusions.',
-              uk: 'Тихих нападників ловлять так само, як і гучних, просто пізніше: хтось має дивитися. Проактивний пошук загроз, алерти, які справді читають, і швидке оголошення інциденту — ось що завершує довгі тихі вторгнення.' },
     busted: { en: 'Most low-skill attackers are caught by their own mistakes: bragging, reused accounts, traceable payments. But they still got in. Basic hygiene (MFA, patching, no default passwords) stops this kind of attacker long before the police have to.',
               uk: 'Більшість низькокваліфікованих нападників ловлять на їхніх же помилках: хвастощі, повторні акаунти, платежі, які легко відстежити. Але вони таки проникли. Базова гігієна (MFA, оновлення, жодних паролів за замовчуванням) зупиняє таких нападників задовго до поліції.' },
     lose: { en: '{top} did the heavy lifting, but it never worked alone. Layered defense works because every control covers a different stage: when one misses, the next one catches you.',
@@ -67,7 +65,7 @@ window.RI = window.RI || {};
   function bestKey(fid, did) { return fid === 'ransom' ? did : fid + ':' + did; }   // ransomware keeps the old save keys
   function facVectors(f) { return RI.VECTORS.filter(function (v) { return !f.vectors || f.vectors.indexOf(v.id) !== -1; }); }
   function goalLine(f, d) {
-    return RI.tf(f.id, 'winNeed', { pct: Math.round(d.winPct * 100), loot: d.loot, reach: Math.round((f.reach || 0.5) * 100) });
+    return RI.tf(f.id, 'winNeed', { pct: Math.round(d.winPct * 100), loot: d.loot });
   }
   function randomName() { return RI.CREW_NAMES[Math.floor(Math.random() * RI.CREW_NAMES.length)]; }
   function labelTag(kind, key) {
@@ -165,18 +163,16 @@ window.RI = window.RI || {};
     treeBranch = game.branches[0].id; treeSel = null;
     $('hud-name').textContent = name;
     var goal = fac.goal;
-    $('m-enc-l').setAttribute('data-i18n', goal === 'wipe' ? 'wiped' : goal === 'stealth' ? 'objectives' : goal === 'dc' ? 'pathDc' : 'encrypted');
+    $('m-enc-l').setAttribute('data-i18n', goal === 'wipe' ? 'wiped' : goal === 'dc' ? 'pathDc' : 'encrypted');
     $('m-exf-l').setAttribute('data-i18n', goal === 'dc' ? 'heat' : 'exfil');
     $('m-enc-l').textContent = RI.t($('m-enc-l').getAttribute('data-i18n'));
     $('m-exf-l').textContent = RI.t($('m-exf-l').getAttribute('data-i18n'));
     document.querySelector('.m-enc').className = 'meter m-enc g-' + goal;
     document.querySelector('.m-exf').classList.toggle('heat', goal === 'dc');
-    $('m-enc-goal').classList.toggle('hidden', goal === 'stealth' || goal === 'dc');
+    $('m-enc-goal').classList.toggle('hidden', goal === 'dc');
     $('m-enc-goal').style.left = Math.round(game.diff.winPct * 100) + '%';
-    $('m-inf-goal').classList.toggle('hidden', goal !== 'stealth');
-    $('m-inf-goal').style.left = Math.round((fac.reach || 0.5) * 100) + '%';
     $('btn-detonate').classList.remove('done');
-    $('btn-detonate').className = 'btn btn-detonate act-' + fac.action + (fac.goal === 'wipe' ? ' wipe' : '');
+    $('btn-detonate').className = 'btn btn-detonate';
     $('tac-strip').innerHTML = RI.TACTIC_ORDER.map(function (k) { return '<i data-t="' + k + '"></i>'; }).join('');
     pushTicker(RI.t('h_start', { name: name, target: RI.L(game.diff.name) }), 'good');
     if (!store.settings.seenHint) {
@@ -220,12 +216,7 @@ window.RI = window.RI || {};
     var inf = g.infectedPct(), enc = g.encryptedPct();
     $('m-inf').style.width = Math.round(inf * 100) + '%'; $('m-inf-v').textContent = Math.round(inf * 100) + '%';
     var fac = g.faction, goal = fac.goal;
-    if (goal === 'stealth') {
-      var o = g.objectives(), n = o.filter(Boolean).length;
-      $('m-enc').style.width = Math.round(n / 3 * 100) + '%';
-      $('m-enc-v').textContent = g.holdSince >= 0 ? RI.t('holdFor', { n: Math.max(0, RI.APT_HOLD - (g.t - g.holdSince)) })
-        : n + '/3' + (n < 3 ? ' · ' + RI.t(['objDomain', 'objLoot', 'objReach'][o.indexOf(false)]) : '');
-    } else if (goal === 'dc') {
+    if (goal === 'dc') {
       $('m-enc').style.width = Math.round(g.progress() * 100) + '%';
       $('m-enc-v').textContent = RI.t('access' + g.accessLevel()) + ' → DC';
     } else {
@@ -273,9 +264,11 @@ window.RI = window.RI || {};
   // third HUD button: strike (detonate / wipe), go dark (APT) or clear history (script kiddies)
   function updateAction(g) {
     var det = $('btn-detonate'), lbl = $('det-label'), icon = $('det-icon'), a = g.faction.action, wipe = g.faction.goal === 'wipe';
-    if (a === 'strike') {
+    var strike = a === 'strike' || (a === 'dark' && g.p.payload && (g.detonated || g.canStrike()));   // APT: GO DARK becomes WIPE
+    det.className = 'btn btn-detonate' + (strike ? (wipe ? ' wipe' : '') : ' act-' + a);
+    if (strike) {
       icon.textContent = wipe ? '☠' : '☢';
-      det.disabled = !g.p.payload || g.detonated;
+      det.disabled = !g.canStrike();
       det.classList.toggle('done', g.detonated);
       lbl.textContent = g.detonated ? RI.tf(g.faction.id, 'detonated') : RI.t(wipe ? 'wipeBtn' : 'detonate');
       return;
@@ -316,7 +309,7 @@ window.RI = window.RI || {};
   function onGameEvent(type, d) {
     switch (type) {
       case 'headline':
-        pushTicker(RI.t('h_' + d.key), d.tone || 'good', true); sfx(d.tone === 'hot' ? 'lost' : 'mutation'); break;
+        pushTicker(RI.tf(game.faction.id, 'h_' + d.key), d.tone || 'good', true); sfx(d.tone === 'hot' ? 'lost' : 'mutation'); break;
       case 'news':
         pushTicker('BREAKING: ' + RI.L(d.event.t), ''); sfx('news'); break;
       case 'mutation':
@@ -475,18 +468,12 @@ window.RI = window.RI || {};
       value: function (g) { return Math.round(g.encryptedPct() * 100); }, unit: '%',
       target: function (g) { return RI.t('finTarget', { target: RI.L(g.diff.name).toUpperCase() }); },
       extra: function (g, e) { return RI.t('finBtc', { btc: (g.ransom() * e).toFixed(1) }); } },
-    wipe: { to: 'enc', haze: '255,110,20', hit: true, boom: 'wipe', stamp: 'lost',
-      emblem: '<div class="fin-skull">☠&#xFE0E;</div>',
-      rain: { glyphs: ['0', '0', '0', '00'], rgb: '255,122,26' },
-      value: function (g) { return Math.round(g.encryptedPct() * 100); }, unit: '%',
-      target: function (g) { return RI.t('fin_wipe_target', { target: RI.L(g.diff.name).toUpperCase() }); },
-      extra: function () { return RI.t('fin_wipe_x'); } },
-    apt: { to: 'inf', haze: '40,224,255', hit: false, boom: 'ghost', stamp: 'mutation',
+    apt: { to: 'enc', haze: '40,224,255', hit: false, boom: 'wipe', stamp: 'ghost',
       emblem: '<div class="fin-eye"><i></i></div>',
-      rain: { glyphs: ['0', '1'], rgb: '40,224,255', every: 90 },
-      value: function (g) { return Math.round(g.infectedPct() * 100); }, unit: '%',
+      rain: { glyphs: ['0', '0', '0', '1'], rgb: '40,224,255', every: 70 },
+      value: function (g) { return Math.round(g.encryptedPct() * 100); }, unit: '%',
       target: function (g) { return RI.t('fin_apt_target', { target: RI.L(g.diff.name).toUpperCase() }); },
-      extra: function (g, e) { return RI.t('fin_apt_x', { gb: Math.round(g.loot * e), d: Math.round(g.peakDetection) }); } },
+      extra: function (g, e) { return RI.t('fin_apt_x', { gb: Math.round(g.loot * e), d: Math.round(g.peakDetectionBeforeDet()) }); } },
     skid: { to: null, haze: '249,240,2', hit: true, boom: 'horn', stamp: 'horn',
       emblem: '<div class="fin-meme">😎</div>',
       rain: { glyphs: ['💀', '🔥', '😎', '💯', 'LOL', '1337', '🤑'], rgb: '249,240,2', every: 70, size: 26 },
@@ -668,13 +655,10 @@ window.RI = window.RI || {};
         items.push('<li><span class="dname">' + RI.DEFENSES[c.def].icon + ' ' + RI.L(RI.DEFENSES[c.def].name) + '</span> <span class="stage">· ' + RI.L(RI.DEFENSES[c.def].stage) + '</span><br>' +
           RI.fmt(RI.L(txt), { n: c.n }) + (hints ? '<div class="tip">↳ ' + hints + '</div>' : '') + '</li>');
       });
-      if (g.outcome === 'burned') items.unshift('<li><span class="dname">📡</span> ' + (RI.lang === 'uk'
-        ? 'Тривога дійшла до рівня «інцидент». Для APT це кінець: сховатися вже не вийде.'
-        : 'The alert level reached "incident declared". For an APT that is the end: there is no hiding after that.') + '</li>');
       if (g.outcome === 'busted') items.unshift('<li><span class="dname">🚨</span> ' + (RI.lang === 'uk'
         ? 'ЖАР досяг 100%. Шум, хвастощі й злиті скріншоти привели слідчих просто до ваших дверей.'
         : 'HEAT hit 100%. Noise, bragging and leaked screenshots led investigators straight to your door.') + '</li>');
-      if (!g.detonated && g.faction.action === 'strike') items.push('<li><span class="dname">⏱</span> ' + (RI.lang === 'uk'
+      if (!g.detonated && g.faction.goal !== 'dc') items.push('<li><span class="dname">⏱</span> ' + (RI.lang === 'uk'
         ? 'Ви так і не детонували. Тривога тільки зростає: зволікання — теж ризик.'
         : 'You never detonated. Alerts only ever go up: waiting is a risk too.') + '</li>');
       var topDef = top.length ? RI.L(RI.DEFENSES[top[0].def].name) : RI.L(RI.DEFENSES.soc.name);
@@ -705,7 +689,6 @@ window.RI = window.RI || {};
 
   function progressStat(g) {
     var goal = g.faction.goal;
-    if (goal === 'stealth') return [RI.t('objectives'), g.objectives().filter(Boolean).length + ' / 3'];
     if (goal === 'dc') return [RI.t('pathDc'), g.flags.dcEver ? 'DC ✓' : RI.t('access' + g.accessLevel())];
     return [RI.tf(g.faction.id, 'sEncrypted'), g.count('enc') + ' / ' + g.denom];
   }
@@ -798,11 +781,12 @@ window.RI = window.RI || {};
     $('btn-detonate').onclick = function () {
       if (!game || game.over) return;
       var act = game.faction.action;
+      if (act === 'dark' && game.canStrike()) act = 'strike';
       if (act === 'dark' || act === 'scrub') {
         if (act === 'dark' ? game.goDark() : game.scrub()) { sfx('mutation'); updateHud(true); }
         return;
       }
-      if (!game.p.payload || game.detonated) return;
+      if (!game.canStrike()) return;
       sfx('click');
       $('confirm-title').textContent = RI.tf(game.faction.id, 'confirmDetTitle');
       $('confirm-body').textContent = RI.tf(game.faction.id, 'confirmDet');

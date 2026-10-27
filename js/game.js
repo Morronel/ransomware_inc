@@ -10,7 +10,6 @@ window.RI = window.RI || {};
   var IR_RATE = [0, 0.03, 0.07, 0.13];
   var RESTORE = { none: 0, online: 0.012, offline: 0.02 };
   var PRIV_KINDS = { srv: 1, dc: 1, bkp: 1 };          // need ADMIN access
-  var HOLD = 24;                                       // APT: hours all objectives must hold
   var LOOT_RATE = { srv: 0.08, dc: 0.05, bkp: 0.04, web: 0.04, ws: 0.01 };   // GB per hour per foothold
 
   function mulberry32(a) {
@@ -120,7 +119,7 @@ window.RI = window.RI || {};
     this.vector = opts.vector;
     this.faction = opts.faction || RI.FACTIONS[0];
     var fb = this.faction.branches;
-    this.branches = RI.BRANCHES.filter(function (b) { return fb.indexOf(b.id) !== -1; });
+    this.branches = fb.map(function (id) { return RI.BRANCHES.filter(function (b) { return b.id === id; })[0]; });   // tab order = crew's order
     this.upgrades = RI.UPGRADES.filter(function (u) { return fb.indexOf(u.branch) !== -1; });
     this.name = opts.name || 'NULLMOTH';
     this.rand = opts.rand || Math.random;
@@ -155,9 +154,8 @@ window.RI = window.RI || {};
     this.heat = 0;                // script kiddies: 100 = busted
     this.peakHeat = 0;
     this.darkUntil = 0;           // APT: quiet until this tick
-    this.holdSince = -1;          // APT: all objectives met since this tick
     this.nextLeak = 40;
-    this.nextHunt = 60;           // script kiddies: the group chat leaks
+    this.nextHunt = 60;           // hunted crews: next SOC threat hunt
     this.actionReady = 0;         // dark / scrub cooldown
     this.detection = 0;
     this.peakDetection = 0;
@@ -355,8 +353,12 @@ window.RI = window.RI || {};
     return true;
   };
 
+  // lootFirst crews (APT) only strike once the crown jewels are out
+  G.canStrike = function () {
+    return this.p.payload && !this.detonated && !this.over && (!this.faction.lootFirst || this.loot >= this.lootGoal);
+  };
   G.detonate = function () {
-    if (!this.p.payload || this.detonated || this.over) return false;
+    if (!this.canStrike()) return false;
     this.detonated = true;
     this.detonatedAt = this.t;
     this.flags.peakPre = this.peakDetection;
@@ -378,7 +380,7 @@ window.RI = window.RI || {};
   // ------------------------------------------------------------ faction actions
   G.isDark = function () { return this.t < this.darkUntil; };
   G.goDark = function () {
-    if (this.faction.action !== 'dark' || this.t < this.actionReady || this.over) return false;
+    if (this.faction.action !== 'dark' || this.t < this.actionReady || this.over || this.detonated) return false;
     this.darkUntil = this.t + 24;
     this.actionReady = this.t + 120;
     this.useTactic('evasion');
@@ -397,16 +399,8 @@ window.RI = window.RI || {};
     this.emit('headline', { key: 'scrub', tone: 'ai' });
     return true;
   };
-  // APT objectives: [DOMAIN, crown jewels, reach]
-  G.objectives = function () {
-    return [this.domainActive(), this.loot >= this.lootGoal, this.infectedPct() >= (this.faction.reach || 0.5)];
-  };
   G.progress = function () {
     var goal = this.faction.goal;
-    if (goal === 'stealth') {
-      var o = this.objectives();
-      return ((o[0] ? 1 : 0) + this.lootPct() + Math.min(1, this.infectedPct() / (this.faction.reach || 0.5))) / 3;
-    }
     if (goal === 'dc') return this.flags.dcEver ? 1 : this.accessLevel() / 2;
     return this.encryptedPct();
   };
@@ -551,16 +545,13 @@ window.RI = window.RI || {};
         if (r() < 0.5) { this.addHeat(6); this.emit('headline', { key: 'chatLeak', tone: 'hot' }); }
       }
     }
-    // APT: the objectives have to hold for a full day before control counts as established
-    if (this.faction.goal === 'stealth') {
+    if (this.faction.hunted) {
       // long dwell attracts threat hunters: a periodic sweep that scales with SOC strength and your footprint
       if (this.t >= this.nextHunt) {
         this.nextHunt = this.t + 60 + Math.floor(r() * 30);
         var found = nInf * 0.6 * D.soc * (1 - Math.min(0.6, p.evasion * 0.5)) * (dark ? 0.4 : 1);
         if (found > 0.5) { this.addNoiseRaw(found); if (found > 4) this.emit('headline', { key: 'hunt', tone: 'hot' }); }
       }
-      if (this.objectives().every(Boolean)) { if (this.holdSince < 0) { this.holdSince = this.t; this.emit('headline', { key: 'holding', tone: 'good' }); } }
-      else this.holdSince = -1;
     }
     this.peakDetection = Math.max(this.peakDetection, this.detection);
     var lvl = 0;
@@ -663,16 +654,15 @@ window.RI = window.RI || {};
     var post = 1;
     if (det) post = (this.restoreBase > 0 ? 1.8 : 1.2) * p.irPostDet;
     if (this.isDark()) post *= 0.5;   // the trail goes cold
-    this.ir = Math.min(100, this.ir + IR_RATE[A] * this.diff.ir * (0.5 + D.soc) * (1 - Math.min(0.8, p.irSlow)) * this.mod('ir') * post);
+    var irStep = IR_RATE[A] * this.diff.ir * (0.5 + D.soc) * (1 - Math.min(0.8, p.irSlow)) * this.mod('ir') * post;
+    if (det) irStep = Math.max(irStep, 0.08);   // after a strike the company always rebuilds eventually, so runs cannot stall
+    this.ir = Math.min(100, this.ir + irStep);
   };
 
   G.checkEnd = function () {
     var nInf = this.count('inf'), nEnc = this.count('enc'), goal = this.faction.goal;
     if (goal === 'encrypt' || goal === 'wipe') { if (nEnc >= this.winCount) return this.end('win'); }
-    else if (goal === 'stealth') {
-      if (this.holdSince >= 0 && this.t - this.holdSince >= HOLD) return this.end('win');
-      if (this.alert >= 2) return this.end('burned');
-    } else if (goal === 'dc') {
+    else if (goal === 'dc') {
       if (this.flags.dcEver) return this.end('win');
       if (this.heat >= 100) return this.end('busted');
     }
@@ -708,7 +698,7 @@ window.RI = window.RI || {};
     var pct = this.progress();
     var s = pct * 40 + di * 14 + this.lootPct() * 8 + Object.keys(this.tactics).length * 0.5;
     if (this.outcome === 'win') {
-      s += 25 + (this.faction.goal === 'dc' ? 15 : this.faction.goal === 'stealth' ? 8 : 0);   // harder crews score more
+      s += 25 + (this.faction.goal === 'dc' ? 15 : this.faction.id === 'apt' ? 8 : 0);   // harder crews score more
       s += Math.max(0, 15 - this.t / 40);                          // speed
       s += Math.max(0, (80 - this.peakDetectionBeforeDet()) / 8);  // stealth before the bang
     } else if (this.outcome === 'extort') {
@@ -742,5 +732,4 @@ window.RI = window.RI || {};
   RI.Game = Game;
   RI.buildNetwork = buildNetwork;
   RI.ALERT_AT = ALERT_AT;
-  RI.APT_HOLD = HOLD;
 })();
