@@ -45,7 +45,7 @@ window.RI = window.RI || {};
 
   var ui = RI.ui = {};
   var sel = { diff: 0, vec: 0, name: '', fac: 'ransom' };
-  var game = null, view = null, speed = 1, acc = 0, lastFrame = 0, paused = false, rafId = 0;
+  var game = null, view = null, speed = 1, acc = 0, lastFrame = 0, paused = false, frozen = false, rafId = 0;
   var tickerQueue = [], tickerBusyUntil = 0, firstEdr = false, hintTimer = 0, treeBranch = 'access', treeSel = null;
   var socUnseen = 0, peakAccess = 0;
 
@@ -157,7 +157,7 @@ window.RI = window.RI || {};
     view.resize();
     view.setGame(game);
     view.selected = null;
-    speed = 1; $('btn-speed').textContent = '1×';
+    speed = 1; $('btn-speed').textContent = '1×'; setFrozen(false);
     acc = 0; lastFrame = performance.now(); paused = false; firstEdr = false;
     tickerQueue = []; tickerBusyUntil = 0; socUnseen = 0; peakAccess = 0;
     treeBranch = game.branches[0].id; treeSel = null;
@@ -189,18 +189,29 @@ window.RI = window.RI || {};
   function frame(now) {
     if (!game) return;
     var dt = Math.min(250, now - lastFrame); lastFrame = now;
-    if (!paused && !game.over) {
+    if (!paused && !frozen && !game.over) {
       acc += dt * speed;
       var step = RI.CONFIG.TICK_MS;
       var ticked = false;
       while (acc >= step && !game.over) { acc -= step; game.tick(); ticked = true; }
       if (ticked) updateHud();
     }
-    view.draw(paused || game.over ? 0 : Math.min(1, acc / RI.CONFIG.TICK_MS));
+    view.draw(paused || frozen || game.over ? 0 : Math.min(1, acc / RI.CONFIG.TICK_MS));
     var intel = Math.floor(game.compute);
     $('cpu-val').textContent = intel; $('evolve-badge').textContent = '◆' + intel;   // same number in both places, every frame
     updateTicker(now);
     rafId = requestAnimationFrame(frame);
+  }
+
+  // time stop: the player freezes the clock to look around; overlays still pause on top of it
+  function setFrozen(on) {
+    frozen = on;
+    $('btn-freeze').textContent = on ? '▶' : '❚❚';
+    $('btn-freeze').classList.toggle('on', on);
+    $('timestop').classList.toggle('hidden', !on);
+    if (on) $('hint').classList.add('hidden');
+    $('map-wrap').classList.toggle('frozen', on);
+    if (!on) lastFrame = performance.now();
   }
 
   function irStage(g) {
@@ -351,7 +362,7 @@ window.RI = window.RI || {};
     var x = e.clientX - r.left, y = e.clientY - r.top;
     var h = view.hit(x, y);
     if (!h) return;
-    if (h.bubble) {
+    if (h.bubble && !frozen) {
       var gain = game.collectBubble(h.bubble.id);
       view.floatText(h.bubble.host.x, h.bubble.host.y, '+' + gain + '◆', '#f9f002');
       pushTicker(RI.t('found', { what: RI.L(RI.FINDS[h.bubble.find]) }) + ' (+' + gain + '◆)', 'good', true);
@@ -371,7 +382,7 @@ window.RI = window.RI || {};
     } else view.selected = null;
     tip.innerHTML = html;
     tip.classList.remove('hidden');
-    clearTimeout(ui._tip); ui._tip = setTimeout(function () { tip.classList.add('hidden'); view.selected = null; }, 2600);
+    clearTimeout(ui._tip); ui._tip = setTimeout(function () { tip.classList.add('hidden'); view.selected = null; }, frozen ? 6000 : 2600);
   }
 
   // ------------------------------------------------------------ upgrade tree
@@ -777,8 +788,16 @@ window.RI = window.RI || {};
     $('btn-menu').onclick = function () { sfx('click'); openOvl('ovl-menu'); };
     $('btn-radio').onclick = function () { sfx('click'); openRadio(); };
     $('btn-speed').onclick = function () {
-      speed = speed === 1 ? 2 : speed === 2 ? 3 : 1; this.textContent = speed + '×'; sfx('click');
+      sfx('click');
+      if (frozen) return setFrozen(false);   // like Plague Inc: picking a speed resumes time
+      speed = speed === 1 ? 2 : speed === 2 ? 3 : 1; this.textContent = speed + '×';
     };
+    $('btn-freeze').onclick = function () { if (!game || game.over) return; sfx('click'); setFrozen(!frozen); };
+    document.addEventListener('keydown', function (e) {
+      if (e.code !== 'Space' || !game || game.over || paused || !$('scr-game').classList.contains('active')) return;
+      if (/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
+      e.preventDefault(); setFrozen(!frozen);
+    });
     $('btn-evolve').onclick = function () { sfx('click'); renderTree(); openOvl('ovl-tree'); };
     $('btn-soc').onclick = function () { sfx('click'); renderSoc(); openOvl('ovl-soc'); };
     $('btn-detonate').onclick = function () {
