@@ -362,7 +362,7 @@ window.RI = window.RI || {};
     var x = e.clientX - r.left, y = e.clientY - r.top;
     var h = view.hit(x, y);
     if (!h) return;
-    if (h.bubble && !frozen) {
+    if (h.bubble) {
       var gain = game.collectBubble(h.bubble.id);
       view.floatText(h.bubble.host.x, h.bubble.host.y, '+' + gain + '◆', '#f9f002');
       pushTicker(RI.t('found', { what: RI.L(RI.FINDS[h.bubble.find]) }) + ' (+' + gain + '◆)', 'good', true);
