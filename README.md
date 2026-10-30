@@ -67,7 +67,7 @@ node tools/sim.js 80          # win% (+double-extortion%) and average length per
 node tools/sim.js 80 skid     # one crew only
 ```
 
-`tools/og.html` is the source of `assets/og-image.jpg` (render it at 1200x630).
+`tools/og.html` is the source of `assets/og-image-v3.jpg` (render it at 1200x630).
 
 ## Deploy to GitHub Pages
 
